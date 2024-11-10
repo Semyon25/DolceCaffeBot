@@ -2,6 +2,6 @@ from utils.background import keep_alive  #импорт функции для п�
 from bot.bot import main
 import asyncio
 
-keep_alive()  #запускаем flask-сервер в отдельном потоке.
+# keep_alive()  #запускаем flask-сервер в отдельном потоке.
 
 asyncio.run(main())
