@@ -8,6 +8,7 @@ db_name = os.environ['db_name']
 Base = declarative_base()
 engine = create_engine(f'sqlite:///{db_name}')
 Session = sessionmaker(bind=engine)
+Base.metadata.create_all(engine)
 
 # Модель
 class Feedback(Base):
