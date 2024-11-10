@@ -11,7 +11,7 @@ async def main():
   bot = Bot(token=bot_token)
   dp = Dispatcher()
 
-  dp.include_routers(start.router, feedback_bot.router, coffeemaker_bot.router)
+  dp.include_routers(start.router, coffeemaker_bot.router, feedback_bot.router)
   # Запускаем бота и пропускаем все накопленные входящие
   await bot.delete_webhook(drop_pending_updates=True)
   await dp.start_polling(bot)
