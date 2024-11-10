@@ -8,6 +8,7 @@ from db.feedback import get_feedback, update_or_create_feedback, update_feedback
 from utils.admin import get_admin_id
 from utils.code_generator import generate_code
 from keyboards.main_menu import get_main_menu
+from aiogram.enums import ParseMode
 
 router = Router()
 
@@ -16,7 +17,8 @@ class OrderFeedback(StatesGroup):
 
 @router.message(F.text.lower() == "оставить отзыв")
 async def answer_feedback(message: Message, state: FSMContext):
-    await message.answer("Введите ссылку на ваш отзыв⤵️")
+    await message.answer("Для того чтобы получить бесплатный напиток☕, напишите, пожалуйста, отзыв на [Яндекс Картах](https://yandex.ru/maps/org/dolce/230301174806/?ll=37.497249%2C55.668364&z=14.52) 🙏\nПосле этого пришлите ссылку на ваш отзыв ⤵️", 
+                        parse_mode=ParseMode.MARKDOWN)
     await state.set_state(OrderFeedback.waiting_for_link)
 
 
