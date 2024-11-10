@@ -17,20 +17,20 @@ class CoffeemakerState(StatesGroup):
 
 @router.message(F.text.lower() == "ввести код")
 async def enter_code(message: Message, state: FSMContext):
-  await message.answer("Введите код клиента ⬇")
+  await message.answer("Введите код клиента⤵️")
   await state.set_state(CoffeemakerState.entering_code)
 
 @router.message(CoffeemakerState.entering_code)
 async def check_code(message: Message, state: FSMContext, bot: Bot):
   confirm, user_id = confirm_code_usage(message.text)
   if confirm:
-    await message.answer("✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
+    await message.answer("Код верный! Приготовьте клиенту бесплатный напиток")
     user = get_user(user_id)
     await bot.send_message(get_admin_id(), f"Пользователь @{user.username} предъявил код для бесплатного напитка")
     await bot.send_message(user_id, f"Код использован! Бариста приготовит вам бесплатный напиток!🥳☕", reply_markup=get_main_menu(user_id))
-    await state.clear()
   else:
-    await message.answer("❌ Код неверный! ❌", reply_markup=get_main_menu(message.from_user.id))
+    await message.answer("Код неверный!", reply_markup=get_main_menu(message.from_user.id))
+  await state.clear()
 
 
 # Обработка команды /approve
