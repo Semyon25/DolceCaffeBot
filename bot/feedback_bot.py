@@ -16,7 +16,7 @@ class OrderFeedback(StatesGroup):
 
 @router.message(F.text.lower() == "оставить отзыв")
 async def answer_feedback(message: Message, state: FSMContext):
-    await message.answer("Введите ссылку на ваш отзыв:")
+    await message.answer("Введите ссылку на ваш отзыв⤵️")
     await state.set_state(OrderFeedback.waiting_for_link)
 
 
@@ -36,13 +36,13 @@ async def link_sended(message: Message, state: FSMContext, bot: Bot):
         is_update, feedback = update_or_create_feedback(message.from_user.id,
                                                      link)
         if is_update:
-          await message.answer("Ваша ссылка обновлена. ⏳")
+          await message.answer("Ваша ссылка обновлена и находится на модерации. Ожидайте ⏳")
           await bot.send_message(
               admin_id,
               f"Обновленная ссылка на отзыв от @{message.from_user.username}: {link}"
           )
         else:
-          await message.answer("Ваша ссылка проходит модерацию. ⏳")
+          await message.answer("Ваша ссылка проходит модерацию. Ожидайте ⏳")
           await bot.send_message(
               admin_id,
               f"Новая ссылка на отзыв от @{message.from_user.username}: {link}"
@@ -50,12 +50,12 @@ async def link_sended(message: Message, state: FSMContext, bot: Bot):
         await state.clear()
     else:
         await message.answer(
-            "Некорректная ссылка. Пожалуйста, введите ссылку на ваш отзыв.")
+            "❌ Некорректная ссылка ❌\nПожалуйста, введите ссылку на ваш отзыв еще раз")
 
 @router.message(F.text.lower() == "получить код")
 async def use_code(message: Message, state: FSMContext):
   feedback = get_feedback(message.from_user.id)
   if feedback is not None and feedback.code is not None and feedback.used==0:
-    await message.answer(f"Ваш код: {feedback.code}\nПокажите его бариста и получите бесплатный напиток!")
+    await message.answer(f"Ваш код: {feedback.code}\nСообщите этот код бариста и получите бесплатный напиток!")
   else:
-    await message.answer("У вас нет доступного кода.")
+    await message.answer("У вас нет доступного кода!")

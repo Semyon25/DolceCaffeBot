@@ -17,7 +17,7 @@ async def cmd_start(message: Message):
     if (get_user(message.from_user.id) is None):
         create_user(message.from_user.id, message.from_user.username,
                     message.from_user.first_name, message.from_user.last_name)
-    await message.answer(f"Привет, {message.from_user.first_name}! 👋 Это кофейня Dolce Caffe!",
+    await message.answer(f"Привет, {message.from_user.first_name}! 👋\nЭто кофейня Dolce Caffe!☕🍫🥤 Здесь вы можете узнать последние новости кофейни и получить бесплатные напитки!🆓",
                          reply_markup=get_main_menu(message.from_user.id))
 
 

@@ -17,7 +17,7 @@ class CoffeemakerState(StatesGroup):
 
 @router.message(F.text.lower() == "ввести код")
 async def enter_code(message: Message, state: FSMContext):
-  await message.answer("Введите код клиента")
+  await message.answer("Введите код клиента⤵️")
   await state.set_state(CoffeemakerState.entering_code)
 
 @router.message(CoffeemakerState.entering_code)
@@ -27,7 +27,7 @@ async def check_code(message: Message, state: FSMContext, bot: Bot):
     await message.answer("Код верный! Приготовьте клиенту бесплатный напиток")
     user = get_user(user_id)
     await bot.send_message(get_admin_id(), f"Пользователь @{user.username} предъявил код для бесплатного напитка")
-    await bot.send_message(user_id, f"Код активирован! Бариста приготовит вам бесплатный напиток!", reply_markup=get_main_menu(user_id))
+    await bot.send_message(user_id, f"Код использован! Бариста приготовит вам бесплатный напиток!🥳☕", reply_markup=get_main_menu(user_id))
   else:
     await message.answer("Код неверный!", reply_markup=get_main_menu(message.from_user.id))
   await state.clear()
@@ -47,6 +47,6 @@ async def approve_feedback(message: Message, bot: Bot):
         code = generate_code()
       update_feedback_code(user.id, code)
       await bot.send_message(admin_id, f"Код для пользователя {user.username}: {code}")
-      await bot.send_message(user.id, "Ваш отзыв прошел модерацию! 🎉\nНажмите кнопку 'Использовать код', чтобы получить код.", reply_markup=get_main_menu(admin_id))
+      await bot.send_message(user.id, "Поздравляем! Ваш отзыв прошел модерацию! 🎉\nНажмите кнопку 'Получить код' и сообщите код бариста 🔢", reply_markup=get_main_menu(admin_id))
     else:
       await bot.send_message(admin_id, "Пользователь не найден.")
