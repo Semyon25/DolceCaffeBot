@@ -49,10 +49,10 @@ async def link_sended(message: Message, state: FSMContext, bot: Bot):
               admin_id,
               f"Новая ссылка на отзыв от @{message.from_user.username}: {link}"
           )
-        await state.clear()
     else:
         await message.answer(
             "❌ Некорректная ссылка ❌\nПожалуйста, введите ссылку на ваш отзыв еще раз")
+    await state.clear()
 
 @router.message(F.text.lower() == "получить код")
 async def use_code(message: Message, state: FSMContext):
