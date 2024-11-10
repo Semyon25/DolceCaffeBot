@@ -10,6 +10,8 @@ Base = declarative_base()
 engine = create_engine(f'sqlite:///{db_name}')
 Session = sessionmaker(bind=engine)
 
+Base.metadata.create_all(engine)
+
 # Модель
 class User(Base):
   __tablename__ = 'users'
