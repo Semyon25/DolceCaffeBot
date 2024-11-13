@@ -39,6 +39,8 @@ async def approve_feedback(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
     username = message.text.split()[1]
+    if username.startswith("@"):
+      username = username[1:]
     user = get_user_by_username(username)
     feedback = get_feedback(user.id)
     if feedback:
@@ -46,7 +48,7 @@ async def approve_feedback(message: Message, bot: Bot):
       while not check_if_code_unique(code):
         code = generate_code()
       update_feedback_code(user.id, code)
-      await bot.send_message(admin_id, f"Код для пользователя {user.username}: {code}")
-      await bot.send_message(user.id, "Поздравляем! Ваш отзыв прошел модерацию! 🎉\nНажмите кнопку 'Получить код' и сообщите код бариста 🔢", reply_markup=get_main_menu(admin_id))
+      await bot.send_message(admin_id, f"Код для пользователя @{user.username}: {code}")
+      await bot.send_message(user.id, "Поздравляем! Ваш отзыв прошел модерацию! 🎉\nНажмите кнопку 'Получить код' и сообщите код бариста 🔢", reply_markup=get_main_menu(user.id))
     else:
       await bot.send_message(admin_id, "Пользователь не найден.")
