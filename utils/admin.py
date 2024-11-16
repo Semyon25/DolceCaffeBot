@@ -1,9 +1,11 @@
 import os
+from db.users import get_user
 
 def get_admin_id():
    return os.environ['admin_id']
 
 def is_coffeemaker_or_admin(user_id):
-  admin_id = int(os.environ['admin_id'])
-  coffeemakers_id = map(int, os.environ["coffeemakers"].split(','))
-  return user_id == admin_id or user_id in coffeemakers_id
+   admin_id = int(os.environ['admin_id'])
+   user = get_user(user_id)
+   return user_id == admin_id or user.is_coffeemaker == 1
+   

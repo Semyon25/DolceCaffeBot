@@ -20,6 +20,7 @@ class User(Base):
   tg_name = Column(String, nullable=False)
   tg_surname = Column(String, nullable=False) 
   created_date = Column(String, nullable=False) 
+  is_coffeemaker = Column(Integer, default=0)
 
 def get_user(user_id):
   session = Session()
@@ -33,10 +34,23 @@ def get_user_by_username(username):
   session.close()
   return current_user
 
+def get_users():
+  session = Session()
+  users = session.query(User).all()
+  session.close()
+  return users
+
 def create_user(user_id, username, name, surname):
   now = datetime.datetime.now()
   new_user = User(id=user_id, username=username, tg_name=name, tg_surname=surname, created_date=now.strftime("%d.%m.%Y %H:%M:%S"))
   session = Session()
   session.add(new_user)
+  session.commit()
+  session.close()
+
+def set_user_as_coffeemaker(user_id):
+  session = Session()
+  current_user = session.query(User).filter(User.id == user_id).first()
+  current_user.is_coffeemaker = 1
   session.commit()
   session.close()
