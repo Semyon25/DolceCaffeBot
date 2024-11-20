@@ -17,7 +17,7 @@ class OrderFeedback(StatesGroup):
 
 @router.message(F.text.lower() == "оставить отзыв")
 async def answer_feedback(message: Message, state: FSMContext):
-    await message.answer("Хочешь **бесплатный** напиток?\nНапиши отзыв на [Яндекс Картах](https://yandex.ru/maps/org/dolce/230301174806/?ll=37.497249%2C55.668364&z=14.52) 🙏\nКогда твой отзыв опубликуют, отправь ссылку на отзыв в ответ на это сообщение ⬇️", 
+    await message.answer("Хочешь **бесплатный** напиток?\nНапиши отзыв на [Яндекс Картах](https://yandex.ru/maps/org/dolce/230301174806/?ll=37.497249%2C55.668364&z=14.52) и отправь ссылку на отзыв в бот⬇️", 
                         parse_mode=ParseMode.MARKDOWN)
     await state.set_state(OrderFeedback.waiting_for_link)
 

@@ -2,7 +2,7 @@ import os
 from db.users import get_user
 
 def get_admin_id():
-   return os.environ['admin_id']
+   return int(os.environ['admin_id'])
 
 def is_coffeemaker_or_admin(user_id):
    admin_id = int(os.environ['admin_id'])

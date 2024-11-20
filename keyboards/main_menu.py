@@ -14,7 +14,7 @@ def get_main_menu(user_id) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     if (is_coffeemaker_or_admin(user_id)):
         kb.button(text="Ввести код")
-    kb.button(text="Меню")
+    # kb.button(text="Меню")
     if code is None:
         kb.button(text="Оставить отзыв")
     if code is not None and was_used == 0:

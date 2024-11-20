@@ -49,7 +49,7 @@ async def approve_feedback(message: Message, bot: Bot):
         code = generate_code()
       update_feedback_code(user.id, code)
       await bot.send_message(admin_id, f"Код для пользователя @{user.username}: {code}")
-      await bot.send_message(user.id, "Поздравляем! Ваш отзыв прошел модерацию! 🎉\nНажмите кнопку 'Получить код' и сообщите код бариста 🔢", reply_markup=get_main_menu(user.id))
+      await bot.send_message(user.id, f"Поздравляем! Ваш отзыв прошел модерацию! 🎉\nВаш код: {code}.\nСообщите этот код бариста и получите бесплатный напиток!", reply_markup=get_main_menu(user.id))
     else:
       await bot.send_message(admin_id, "Пользователь не найден.")
 
