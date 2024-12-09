@@ -15,6 +15,5 @@ router = Router()
 @router.message(Command("help"))
 async def help(message: Message, bot: Bot):    
   admin_id = int(get_admin_id())
-  print(admin_id)
   if message.from_user.id == admin_id:
     await bot.send_message(admin_id, "/approve {username} - подтвердить ссылку на отзыв для пользователя\n/addNewCoffeemaker {username} - добавить бариста\n/allUsers - список всех пользователей")
