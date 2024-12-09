@@ -58,9 +58,9 @@ def create_user(user_id, username, name, surname):
   session.close()
 
 
-def set_user_as_coffeemaker(user_id):
+def set_user_as_coffeemaker(user_id, isCoffeemaker):
   session = Session()
   current_user = session.query(User).filter(User.id == user_id).first()
-  current_user.is_coffeemaker = 1
+  current_user.is_coffeemaker = isCoffeemaker
   session.commit()
   session.close()

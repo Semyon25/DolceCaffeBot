@@ -17,8 +17,12 @@ class CoffeemakerState(StatesGroup):
 
 @router.message(F.text.lower() == "ввести код")
 async def enter_code(message: Message, state: FSMContext):
-  await message.answer("Введите код клиента ⬇")
-  await state.set_state(CoffeemakerState.entering_code)
+  user = get_user(message.from_user.id)
+  if user is not None and user.is_coffeemaker == 1:
+    await message.answer("Введите код клиента ⬇")
+    await state.set_state(CoffeemakerState.entering_code)
+  elif user is not None and user.is_coffeemaker == 0:
+    await message.answer("Вы не можете ввести код",reply_markup=get_main_menu(user.id))
 
 @router.message(CoffeemakerState.entering_code)
 async def check_code(message: Message, state: FSMContext, bot: Bot):
@@ -63,10 +67,29 @@ async def add_new_coffeemaker(message: Message, bot: Bot):
     user = get_user_by_username(username)
     if user is not None:
       if user.is_coffeemaker == 0:
-        set_user_as_coffeemaker(user.id)
+        set_user_as_coffeemaker(user.id, 1)
         await bot.send_message(admin_id, "Добавлен новый бариста!")
+        await bot.send_message(user.id, "Вам назначена роль бариста!",
+                               reply_markup=get_main_menu(user.id))
       else:
         await bot.send_message(admin_id, "Данный пользователь уже бариста!")
+    else:
+      await bot.send_message(admin_id, "Такого пользователя не существует!")
+
+@router.message(Command('removeCoffeemaker'))
+async def remove_coffeemaker(message: Message, bot: Bot):
+  admin_id = int(get_admin_id())
+  if message.from_user.id == admin_id:
+    username = message.text.split()[1]    
+    if username.startswith("@"):
+      username = username[1:]
+    user = get_user_by_username(username)
+    if user is not None:
+      if user.is_coffeemaker == 1:
+        set_user_as_coffeemaker(user.id, 0)
+        await bot.send_message(admin_id, f"Пользователь @{user.username} больше не бариста!")
+      else:
+        await bot.send_message(admin_id, "Данный пользователь не бариста!")
     else:
       await bot.send_message(admin_id, "Такого пользователя не существует!")
 
