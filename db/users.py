@@ -17,7 +17,7 @@ Base.metadata.create_all(engine)
 class User(Base):
   __tablename__ = 'users'
   id = Column(Numeric, primary_key=True, unique=True, nullable=False)
-  username = Column(String, nullable=False)
+  username = Column(String)
   tg_name = Column(String)
   tg_surname = Column(String)
   created_date = Column(String, nullable=False)
