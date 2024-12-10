@@ -41,13 +41,13 @@ async def link_sended(message: Message, state: FSMContext, bot: Bot):
           await message.answer("Ваша ссылка обновлена и находится на модерации. Ожидайте ⏳")
           await bot.send_message(
               admin_id,
-              f"Обновленная ссылка на отзыв от @{message.from_user.username}: {link}"
+              f"Обновленная ссылка на отзыв от @{message.from_user.username} ({message.from_user.id}): {link}"
           )
         else:
           await message.answer("Ваша ссылка проходит модерацию. Ожидайте ⏳")
           await bot.send_message(
               admin_id,
-              f"Новая ссылка на отзыв от @{message.from_user.username}: {link}"
+              f"Новая ссылка на отзыв от @{message.from_user.username} ({message.from_user.id}): {link}"
           )
         await state.clear()
     else:

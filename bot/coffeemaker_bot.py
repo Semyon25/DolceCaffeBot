@@ -42,10 +42,8 @@ async def check_code(message: Message, state: FSMContext, bot: Bot):
 async def approve_feedback(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
-    username = message.text.split()[1]
-    if username.startswith("@"):
-      username = username[1:]
-    user = get_user_by_username(username)
+    userId = message.text.split()[1]
+    user = get_user_by_username(userId)
     feedback = get_feedback(user.id)
     if feedback:
       code = generate_code()
@@ -61,10 +59,8 @@ async def approve_feedback(message: Message, bot: Bot):
 async def add_new_coffeemaker(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
-    username = message.text.split()[1]    
-    if username.startswith("@"):
-      username = username[1:]
-    user = get_user_by_username(username)
+    userId = message.text.split()[1]
+    user = get_user(userId)
     if user is not None:
       if user.is_coffeemaker == 0:
         set_user_as_coffeemaker(user.id, 1)
@@ -80,10 +76,8 @@ async def add_new_coffeemaker(message: Message, bot: Bot):
 async def remove_coffeemaker(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
-    username = message.text.split()[1]    
-    if username.startswith("@"):
-      username = username[1:]
-    user = get_user_by_username(username)
+    userId = message.text.split()[1]
+    user = get_user(userId)
     if user is not None:
       if user.is_coffeemaker == 1:
         set_user_as_coffeemaker(user.id, 0)
@@ -100,5 +94,5 @@ async def get_all_users(message: Message, bot: Bot):
     users = get_users()
     answer = ""
     for user in users:
-      answer += f"@{user.username}|{user.tg_name}|{user.tg_surname}|{user.created_date}|{user.is_coffeemaker}\n"
+      answer += f"{int(user.id)}|@{user.username}|{user.tg_name}|{user.tg_surname}|{user.created_date}|{user.is_coffeemaker}\n"
     await bot.send_message(admin_id, f"Список всех пользователей:\n{answer}")
