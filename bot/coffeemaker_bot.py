@@ -106,7 +106,7 @@ async def add_link(message: Message, bot: Bot):
     userId = message.text.split()[1]
     user = get_user(userId)
     if user is not None:
-      url = message.text.split()[2]
+      link = message.text.split()[2]
       is_update, feedback = update_or_create_feedback(user.id, link)
       if feedback is not None:
         await bot.send_message(admin_id, "Ссылка пользователю добавлена!")
