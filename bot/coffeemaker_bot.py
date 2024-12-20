@@ -8,7 +8,7 @@ from db.users import get_user, get_user_by_username, set_user_as_coffeemaker, ge
 from keyboards.main_menu import get_main_menu
 from aiogram.filters import Command
 from utils.code_generator import generate_code
-from db.feedback import get_feedback, update_feedback_code, check_if_code_unique, confirm_code_usage
+from db.feedback import get_feedback, update_feedback_code, check_if_code_unique, confirm_code_usage, update_or_create_feedback
 
 router = Router()
 
