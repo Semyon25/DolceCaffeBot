@@ -43,7 +43,7 @@ async def approve_feedback(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
     userId = message.text.split()[1]
-    user = get_user_by_username(userId)
+    user = get_user(userId)
     feedback = get_feedback(user.id)
     if feedback:
       code = generate_code()
@@ -93,6 +93,20 @@ async def get_all_users(message: Message, bot: Bot):
   if message.from_user.id == admin_id:
     users = get_users()
     answer = ""
+    number = 1
     for user in users:
-      answer += f"{int(user.id)}|@{user.username}|{user.tg_name}|{user.tg_surname}|{user.created_date}|{user.is_coffeemaker}\n"
+      answer += f"{number}. {int(user.id)}|@{user.username}|{user.tg_name}|{user.tg_surname}|{user.created_date}|{user.is_coffeemaker}\n"
+      number += 1
     await bot.send_message(admin_id, f"Список всех пользователей:\n{answer}")
+
+@router.message(Command('addLink'))
+async def add_link(message: Message, bot: Bot):
+  admin_id = int(get_admin_id())
+  if message.from_user.id == admin_id:
+    userId = message.text.split()[1]
+    user = get_user(userId)
+    if user is not None:
+      url = message.text.split()[2]
+      is_update, feedback = update_or_create_feedback(user.id, link)
+      if feedback is not None:
+        await bot.send_message(admin_id, "Ссылка пользователю добавлена!")
