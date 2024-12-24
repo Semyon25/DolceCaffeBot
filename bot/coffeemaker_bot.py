@@ -96,7 +96,7 @@ async def get_all_users(message: Message, bot: Bot):
     answer = ""
     number = 1
     # Сначала выводим бариста, а затем всех остальных
-    sorted_users = sorted(users, key=lambda user: (-user.is_coffeemaker, user.id))
+    sorted_users = sorted(users, key=lambda user: -user.is_coffeemaker)
     for user in sorted_users:
       feedback = get_feedback(user.id)
       answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} {get_feedback_emoji(feedback)}\n"
