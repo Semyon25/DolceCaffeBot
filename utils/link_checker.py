@@ -6,6 +6,6 @@ def check_if_text_is_feedback_link(message : Message):
   for entity in entities:
       if entity.type == "url":
           link = entity.extract_from(message.text)
-  if link is not None and link.startswith('https://yandex.ru/maps/'):
+  if link is not None and (link.startswith('https://yandex.ru/maps/') or link.startswith('https://yandex.com/maps/')):
     return link
   return None
