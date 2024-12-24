@@ -4,6 +4,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from utils.admin import get_admin_id
+from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji
 from db.users import get_user, get_user_by_username, set_user_as_coffeemaker, get_users
 from keyboards.main_menu import get_main_menu
 from aiogram.filters import Command
@@ -94,8 +95,11 @@ async def get_all_users(message: Message, bot: Bot):
     users = get_users()
     answer = ""
     number = 1
-    for user in users:
-      answer += f"{number}. {int(user.id)}|@{user.username}|{user.tg_name}|{user.tg_surname}|{user.created_date}|{user.is_coffeemaker}\n"
+    # Сначала выводим бариста, а затем всех остальных
+    sorted_users = sorted(users, key=lambda user: (-user.is_coffeemaker, user.id))
+    for user in sorted_users:
+      feedback = get_feedback(user.id)
+      answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} {get_feedback_emoji(feedback)}\n"
       number += 1
     await bot.send_message(admin_id, f"Список всех пользователей:\n{answer}")
 
