@@ -3,11 +3,11 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
+from aiogram.filters import Command
 from utils.admin import get_admin_id
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji
-from db.users import get_user, get_user_by_username, set_user_as_coffeemaker, get_users
+from db.users import get_user, set_user_as_coffeemaker, get_users
 from keyboards.main_menu import get_main_menu
-from aiogram.filters import Command
 from utils.code_generator import generate_code
 from db.feedback import get_feedback, update_feedback_code, check_if_code_unique, confirm_code_usage, update_or_create_feedback
 
