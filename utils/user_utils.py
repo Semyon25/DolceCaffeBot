@@ -3,6 +3,8 @@ from db.feedback import Feedback
 
 def get_user_name(user: User):
   answer = ''
+  if user is None:
+    return answer
   if user.username is not None:
     answer += f"@{user.username} "
   if user.tg_name is not None:

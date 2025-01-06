@@ -1,24 +1,21 @@
 from aiogram import Bot
-from aiogram.fsm.state import StatesGroup, State
-from aiogram import types, Router, F
-from aiogram.filters import Command, StateFilter
-from aiogram.types import Message, ReplyKeyboardRemove
-from aiogram.fsm.context import FSMContext
-from keyboards.main_menu import get_main_menu
-from db.users import get_user, create_user
-from db.feedback import get_feedback
+from aiogram import Router
+from aiogram.types import Message
 from utils.admin import get_admin_id
-from aiogram.enums import ParseMode
 from utils.link_checker import check_if_text_is_feedback_link
 from db.feedback import get_feedback, update_or_create_feedback
+from utils.user_utils import get_user_name
+from db.users import get_user
 
 router = Router()
 
-@router.message(F.text)
+@router.message()
 async def handle_text_message(message: Message, bot: Bot):
   admin_id = get_admin_id()
   if (message.from_user.id != admin_id):
-    await bot.send_message(admin_id, f"От пользователя @{message.from_user.username}:\n{message.text}")
+    #user_name = get_user_name(get_user(message.from_user.id))
+    #await bot.send_message(admin_id, f"От пользователя {user_name}:")
+    await message.forward(admin_id)
     
   link = check_if_text_is_feedback_link(message)
   if link is not None:
