@@ -1,13 +1,10 @@
 from aiogram import Bot
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router, F
-from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-from db.feedback import get_feedback, update_or_create_feedback, update_feedback_code, check_if_code_unique
+from db.feedback import get_feedback, update_or_create_feedback
 from utils.admin import get_admin_id
-from utils.code_generator import generate_code
-from keyboards.main_menu import get_main_menu
 from aiogram.enums import ParseMode
 
 router = Router()

@@ -4,11 +4,11 @@ from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
-from utils.admin import get_admin_id
+from utils.admin import get_admin_id, is_coffeemaker_or_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji
 from db.users import get_user, set_user_as_coffeemaker, get_users
 from keyboards.main_menu import get_main_menu
-from utils.code_generator import generate_code
+from utils.code_generator import generate_code_6
 from db.feedback import get_feedback, update_feedback_code, check_if_code_unique, confirm_code_usage, update_or_create_feedback
 
 router = Router()
@@ -18,12 +18,11 @@ class CoffeemakerState(StatesGroup):
 
 @router.message(F.text.lower() == "ввести код")
 async def enter_code(message: Message, state: FSMContext):
-  user = get_user(message.from_user.id)
-  if user is not None and user.is_coffeemaker == 1:
+  if is_coffeemaker_or_admin(message.from_user.id):
     await message.answer("Введите код клиента ⬇")
     await state.set_state(CoffeemakerState.entering_code)
-  elif user is not None and user.is_coffeemaker == 0:
-    await message.answer("Вы не можете ввести код",reply_markup=get_main_menu(user.id))
+  else:
+    await message.answer("Вы не можете ввести код",reply_markup=get_main_menu(message.from_user.id))
 
 @router.message(CoffeemakerState.entering_code)
 async def check_code(message: Message, state: FSMContext, bot: Bot):
@@ -47,9 +46,9 @@ async def approve_feedback(message: Message, bot: Bot):
     user = get_user(userId)
     feedback = get_feedback(user.id)
     if feedback:
-      code = generate_code()
+      code = generate_code_6()
       while not check_if_code_unique(code):
-        code = generate_code()
+        code = generate_code_6()
       update_feedback_code(user.id, code)
       await bot.send_message(admin_id, f"Код для пользователя @{user.username}: {code}")
       await bot.send_message(user.id, f"Поздравляем! Ваш отзыв прошел модерацию! 🎉\nВаш код: {code}.\nСообщите этот код бариста и получите бесплатный напиток!", reply_markup=get_main_menu(user.id))
