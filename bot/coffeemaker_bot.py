@@ -1,20 +1,25 @@
 from aiogram import Bot
+from aiogram.enums import ParseMode
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from utils.admin import get_admin_id, is_coffeemaker_or_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji
 from db.users import get_user, set_user_as_coffeemaker, get_users
 from keyboards.main_menu import get_main_menu
-from utils.code_generator import generate_code_6
-from db.feedback import get_feedback, update_feedback_code, check_if_code_unique, confirm_code_usage, update_or_create_feedback
+from utils.code_generator import generate_code_6, generate_purchase_code_if_needed
+from utils.declension_noun import beverage_declension
+from db.feedback import get_feedback, update_feedback_code, check_if_code_unique, confirm_code_usage as confirm_code_usage_from_feedback, update_or_create_feedback
+from db.codes import get_user as get_user_by_code, confirm_code_usage
+from db.purchases import get_count,set_count
 
 router = Router()
 
 class CoffeemakerState(StatesGroup):
   entering_code = State()
+  waiting_beverage_count = State()
 
 @router.message(F.text.lower() == "ввести код")
 async def enter_code(message: Message, state: FSMContext):
@@ -26,7 +31,69 @@ async def enter_code(message: Message, state: FSMContext):
 
 @router.message(CoffeemakerState.entering_code)
 async def check_code(message: Message, state: FSMContext, bot: Bot):
-  confirm, user_id = confirm_code_usage(message.text)
+  await state.clear()
+  entered_code = message.text or ''
+  # Акция 6+1
+  if entered_code.isdigit() and len(entered_code) == 4:
+    await handle_purchase_6_1(message, state, bot)
+  # Напиток за отзыв
+  elif entered_code.isdigit() and len(entered_code) == 6:
+    await handle_feedback(message, bot)
+
+# Обработчик ввода кода по акции 6+1
+async def handle_purchase_6_1(message: Message, state: FSMContext, bot: Bot):
+  entered_code = message.text or ''
+  userId = get_user_by_code(entered_code)
+  if userId is None:
+    await message.answer("❌ Код уже был использован! Необходимо клиенту сгенерировать новый код (нажать кнопку 'Акция 6+1')")
+  else:
+    count = get_count(userId)
+    confirm_code_usage(entered_code)
+    if count is not None and count >= 6:
+      set_count(userId, 0)
+      await message.answer("✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
+      client = get_user(userId)
+      await bot.send_message(get_admin_id(), f"Пользователь {get_user_name(client)} предъявил код для бесплатного напитка по акции 6+1")
+      await bot.send_message(userId, "Бариста приготовит вам бесплатный напиток!🥳☕")
+    elif count is not None and count < 6:
+      await state.update_data(user_id=userId, count=count)
+      keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+          InlineKeyboardButton(text="1", callback_data="beverage_1"),
+          InlineKeyboardButton(text="2", callback_data="beverage_2"),
+          InlineKeyboardButton(text="3", callback_data="beverage_3")
+      ]])
+      await message.answer("✅ Код верный! ✅\nВыберите, сколько напитков купил клиент", reply_markup=keyboard)
+      await state.set_state(CoffeemakerState.waiting_beverage_count)
+      
+
+@router.callback_query(CoffeemakerState.waiting_beverage_count)
+async def handle_beverage_count(query: CallbackQuery, state: FSMContext, bot: Bot):
+  delta = int(0)
+  if query.data == "beverage_1":
+    delta = 1
+  elif query.data == "beverage_2":
+    delta = 2
+  elif query.data == "beverage_3":
+    delta = 3
+  data = await state.get_data()
+  userId = data.get('user_id')
+  count = min(6, data.get('count') + delta)
+  set_count(userId, count)
+  user = get_user(userId)
+  await bot.send_message(get_admin_id(), f"Пользователь {get_user_name(user)} купил {delta} {beverage_declension(delta)} по акции 6+1. Общее количество напитков: {count}")
+  await bot.send_message(userId, f"✅ Покупка учтена! Вы накопили <b>{count}</b> {beverage_declension(count)} из 6.☕", parse_mode=ParseMode.HTML)
+  if count >= 6:
+    code = generate_purchase_code_if_needed(userId)
+    await bot.send_message(userId, f'🎉 <b>Поздравляем!</b> 🎉\nВы накопили шесть напитков! Вам доступен <b>бесплатный напиток</b>!☕\nЧтобы получить бесплатный напиток, сообщите бариста код <b>{code}</b>', parse_mode=ParseMode.HTML)
+  await query.message.answer("✅ Покупка клиента учтена!")
+  await bot.delete_message(chat_id=query.message.chat.id, message_id=query.message.message_id)
+  await query.answer()
+  await state.clear()
+
+# Обработчик ввода кода по напиток за отзыв
+async def handle_feedback(message: Message, bot: Bot):
+  entered_code = message.text or ''
+  confirm, user_id = confirm_code_usage_from_feedback(entered_code)
   if confirm:
     await message.answer("✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
     user = get_user(user_id)
@@ -34,9 +101,7 @@ async def check_code(message: Message, state: FSMContext, bot: Bot):
     await bot.send_message(user_id, "Код использован! Бариста приготовит вам бесплатный напиток!🥳☕", reply_markup=get_main_menu(user_id))
   else:
     await message.answer("❌ Код неверный! ❌", reply_markup=get_main_menu(message.from_user.id))
-  await state.clear()
-
-
+  
 # Обработка команды /approve
 @router.message(Command('approve'))
 async def approve_feedback(message: Message, bot: Bot):

@@ -11,6 +11,7 @@ from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, Teleg
 from utils.admin import get_admin_id
 from db.users import User, get_user, get_users
 from utils.user_utils import get_user_name
+from keyboards.main_menu import get_main_menu
 
 # Укажите задержку между отправками сообщений в секундах (чтобы не превысить лимиты Telegram)
 DELAY_BETWEEN_MESSAGES = 1
@@ -107,7 +108,7 @@ async def send_message_to_user(bot: Bot, user: User, message_text: Optional[str]
       media_builder.add_photo(media=photos[-1])
       await bot.send_media_group(user.id, media=media_builder.build())
     elif message_text:
-      await bot.send_message(user.id, message_text)
+      await bot.send_message(user.id, message_text, reply_markup=get_main_menu(user.id))
   except TelegramForbiddenError:
     errors.append(f"Бот заблокирован пользователем {get_user_name(user)}")
   except TelegramBadRequest as e:

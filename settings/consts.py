@@ -1,1 +1,2 @@
 FEEDBACK_MODE = False
+PURCHASE_MODE = True

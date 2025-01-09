@@ -23,5 +23,8 @@ def get_main_menu(user_id) -> ReplyKeyboardMarkup:
             kb.button(text="Оставить отзыв")
         if code is not None and was_used == 0:
             kb.button(text="Получить код")
+
+    if settings.consts.PURCHASE_MODE:
+        kb.button(text="Акция 6+1")
             
     return kb.as_markup(resize_keyboard=True)

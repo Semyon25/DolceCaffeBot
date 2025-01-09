@@ -1,6 +1,6 @@
 import os
 from aiogram import Bot, Dispatcher
-from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot
+from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot
 import settings.consts
 
 # Запуск процесса поллинга новых апдейтов
@@ -16,6 +16,8 @@ async def main():
   dp.include_router(coffeemaker_bot.router)
   if settings.consts.FEEDBACK_MODE:
     dp.include_router(feedback_bot.router)
+  if settings.consts.PURCHASE_MODE:
+    dp.include_router(purchase_bot.router)
   dp.include_router(broadcast_bot.router)
   dp.include_router(anyText_bot.router)
   # Запускаем бота и пропускаем все накопленные входящие

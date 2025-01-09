@@ -24,14 +24,32 @@ async def cmd_start(message: Message, bot: Bot):
               f"@{message.from_user.username}\n"
               f"{message.from_user.first_name} {message.from_user.last_name}"
           )
-    await message.answer(f"Привет, {message.from_user.first_name}! 👋\nЭто кофейня Dolce Caffe!☕🍫🥤 Здесь ты можешь узнать последние новости кофейни и получить бесплатные напитки!🆓",
-                         reply_markup=get_main_menu(message.from_user.id))
+    name = ''
+    if message.from_user.first_name is not None:
+        name = f', {message.from_user.first_name}'
+    await message.answer(f"Привет{name}! 👋\nЭто кофейня <b>Dolce Caffe</b>☕🍫🥤\n\nЗдесь ты можешь узнать последние новости кофейни и <b>получить бесплатные напитки по Акции 6+1</b> 🎁",
+                         reply_markup=get_main_menu(message.from_user.id), parse_mode=ParseMode.HTML)
 
     if settings.consts.FEEDBACK_MODE:
         feedback = get_feedback(message.from_user.id)
         if feedback is None or feedback.link is None:
             await message.answer("Хочешь **бесплатный** напиток?\nНапиши отзыв на [Яндекс Картах](https://yandex.ru/maps/org/dolce/230301174806/?ll=37.497249%2C55.668364&z=14.52) и отправь ссылку на отзыв в бот⬇️", parse_mode=ParseMode.MARKDOWN)
 
+    if settings.consts.PURCHASE_MODE:
+        await message.answer("""<b>Участвуй в акции❗️6+1❗️</b>
+
+Покупай напитки в кофейне <b>Dolce Caffè</b>
+
+Сообщай бариста одноразовый код из чат-бота после каждой покупки 🔢
+
+Накапливай напитки ☕️☕️☕️☕️☕️☕️
+
+Как только накопишь шесть напитков, <b>СЕДЬМОЙ напиток БЕСПЛАТНО</b> 🎁 
+
+* в акции участвуют любые напитки любого объема, кроме воды в бутылках и газировок
+* * полное описание акции — нажми на кнопку <b>АКЦИЯ 6+1</b> в меню чат-бота 
+
+Удачи! 😎""", parse_mode=ParseMode.HTML)
 
 # @router.message(F.text.lower() == "меню")
 # async def answer_menu(message: Message):
