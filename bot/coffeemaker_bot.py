@@ -6,7 +6,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from utils.admin import get_admin_id, is_coffeemaker_or_admin
-from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji
+from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji, get_beverage_count_emoji
 from db.users import get_user, set_user_as_coffeemaker, get_users
 from keyboards.main_menu import get_main_menu
 from utils.code_generator import generate_code_6, generate_purchase_code_if_needed
@@ -163,7 +163,8 @@ async def get_all_users(message: Message, bot: Bot):
     sorted_users = sorted(users, key=lambda user: -user.is_coffeemaker)
     for user in sorted_users:
       feedback = get_feedback(user.id)
-      answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} ({int(user.id)}){get_feedback_emoji(feedback)}\n"
+      beverage_count = get_count(user.id)
+      answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} ({int(user.id)}){get_feedback_emoji(feedback)} {get_beverage_count_emoji(beverage_count)}\n"
       number += 1
     await bot.send_message(admin_id, f"Список всех пользователей:\n{answer}")
 
@@ -178,3 +179,15 @@ async def add_link(message: Message, bot: Bot):
       is_update, feedback = update_or_create_feedback(user.id, link)
       if feedback is not None:
         await bot.send_message(admin_id, "Ссылка пользователю добавлена!")
+
+@router.message(Command('correctPurchaseCount'))
+async def correct_purchase_count(message: Message, bot: Bot):
+  admin_id = int(get_admin_id())
+  if message.from_user.id == admin_id:
+    userId = message.text.split()[1]
+    user = get_user(userId)
+    if user is not None:
+      count = message.text.split()[2]
+      set_count(userId, count)
+      updated_count = get_count(userId)
+      await bot.send_message(admin_id, f"У пользователя накоплено {updated_count} напитков")
