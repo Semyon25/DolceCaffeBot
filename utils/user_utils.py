@@ -33,7 +33,7 @@ def get_feedback_emoji(feedback: Feedback):
     return '✅'
 
 def get_beverage_count_emoji(count):
-  if count == 0:
+  if count is None or count == 0:
     return ''
   else:
-    f'☕{count}'
+    return f'{count}☕'
