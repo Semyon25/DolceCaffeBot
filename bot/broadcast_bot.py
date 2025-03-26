@@ -1,5 +1,6 @@
 import asyncio
 from typing import List, Optional
+from aiogram.enums import ParseMode
 from aiogram import Bot
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router
@@ -18,9 +19,11 @@ DELAY_BETWEEN_MESSAGES = 1
 
 router = Router()
 
+
 class BroadcastState(StatesGroup):
   waiting_broadcast_content = State()
   waiting_confirmation = State()
+
 
 @router.message(Command('sendMessage'))
 async def handle_sendMessage_command(message: Message, state: FSMContext):
@@ -71,7 +74,8 @@ async def process_broadcast_content(message: Message, state: FSMContext):
 
 
 @router.callback_query(BroadcastState.waiting_confirmation)
-async def process_confirmation(query: CallbackQuery, state: FSMContext, bot: Bot):
+async def process_confirmation(query: CallbackQuery, state: FSMContext,
+                               bot: Bot):
   if query.data == "confirm_broadcast":
     data = await state.get_data()
     text = data.get('broadcast_text')
@@ -80,43 +84,56 @@ async def process_confirmation(query: CallbackQuery, state: FSMContext, bot: Bot
     await query.message.answer("Начинаю отправку...")
     errors = await send_message_to_users(bot, user_id, text, photos)
     if errors:
-      error_message = "Возникли следующие ошибки при рассылке:\n\n" + "\n".join(errors)
+      error_message = "Возникли следующие ошибки при рассылке:\n\n" + "\n".join(
+          errors)
       await query.message.answer(error_message)
     await query.message.answer('Отправка завершена!')
     await query.answer()
   elif query.data == "cancel_broadcast":
     await query.message.answer("Отправка отменена.")
     await query.answer()
-  await query.message.edit_reply_markup(reply_markup=None) # Убираем кнопки
+  await query.message.edit_reply_markup(reply_markup=None)  # Убираем кнопки
   await state.clear()
 
 
-async def send_message_to_users(bot: Bot, userId: int, message_text: Optional[str], photos: Optional[List[str]] = None):
-    users = [get_user(userId)] if userId is not None else get_users()
-    all_errors = []
-    for user in users:        
-      errors = await send_message_to_user(bot, user, message_text, photos, [])
-      if errors:
-        all_errors.extend(errors)
-      await asyncio.sleep(DELAY_BETWEEN_MESSAGES)
-    return all_errors
+async def send_message_to_users(bot: Bot,
+                                userId: int,
+                                message_text: Optional[str],
+                                photos: Optional[List[str]] = None):
+  users = [get_user(userId)] if userId is not None else get_users()
+  all_errors = []
+  for user in users:
+    errors = await send_message_to_user(bot, user, message_text, photos, [])
+    if errors:
+      all_errors.extend(errors)
+    await asyncio.sleep(DELAY_BETWEEN_MESSAGES)
+  return all_errors
 
-async def send_message_to_user(bot: Bot, user: User, message_text: Optional[str], photos: Optional[List[str]], errors: List[str]):
+
+async def send_message_to_user(bot: Bot, user: User,
+                               message_text: Optional[str],
+                               photos: Optional[List[str]], errors: List[str]):
   try:
     if photos:
       media_builder = MediaGroupBuilder(caption=message_text)
-      media_builder.add_photo(media=photos[-1])
+      media_builder.add_photo(media=photos[-1], parse_mode=ParseMode.HTML)
       await bot.send_media_group(user.id, media=media_builder.build())
     elif message_text:
-      await bot.send_message(user.id, message_text, reply_markup=get_main_menu(user.id))
+      await bot.send_message(user.id,
+                             message_text,
+                             reply_markup=get_main_menu(user.id))
   except TelegramForbiddenError:
     errors.append(f"Бот заблокирован пользователем {get_user_name(user)}")
   except TelegramBadRequest as e:
-    errors.append(f"Ошибка при отправке сообщения пользователю {get_user_name(user)}: {e}")
+    errors.append(
+        f"Ошибка при отправке сообщения пользователю {get_user_name(user)}: {e}"
+    )
   except TelegramRetryAfter as e:
     await asyncio.sleep(e.retry_after)
     # Повторяем отправку после ожидания
     await send_message_to_user(bot, user, message_text, photos, errors)
   except Exception as e:
-    errors.append(f"Неизвестная ошибка при отправке сообщения пользователю {get_user_name(user)}: {e}")
+    errors.append(
+        f"Неизвестная ошибка при отправке сообщения пользователю {get_user_name(user)}: {e}"
+    )
   return errors
