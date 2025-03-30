@@ -84,9 +84,14 @@ async def process_confirmation(query: CallbackQuery, state: FSMContext,
     await query.message.answer("Начинаю отправку...")
     errors = await send_message_to_users(bot, user_id, text, photos)
     if errors:
-      error_message = "Возникли следующие ошибки при рассылке:\n\n" + "\n".join(
-          errors)
-      await query.message.answer(error_message)
+      group_size = 15
+      for i in range(0, len(errors), group_size):
+        error_group = errors[i:i + group_size]
+        numbered_errors = [f"{i + j + 1}. {error}" for j, error in enumerate(error_group)]
+        error_message = "\n".join(numbered_errors)
+        if i == 0:
+          error_message = "The following errors occurred during sending:\n\n" + error_message
+          await query.message.answer(error_message)
     await query.message.answer('Отправка завершена!')
     await query.answer()
   elif query.data == "cancel_broadcast":
@@ -101,7 +106,7 @@ async def send_message_to_users(bot: Bot,
                                 message_text: Optional[str],
                                 photos: Optional[List[str]] = None):
   users = [get_user(userId)] if userId is not None else get_users()
-  all_errors = []
+  all_errors : list[str] = []
   for user in users:
     errors = await send_message_to_user(bot, user, message_text, photos, [])
     if errors:
