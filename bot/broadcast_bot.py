@@ -91,7 +91,7 @@ async def process_confirmation(query: CallbackQuery, state: FSMContext,
         error_message = "\n".join(numbered_errors)
         if i == 0:
           error_message = "The following errors occurred during sending:\n\n" + error_message
-          await query.message.answer(error_message)
+        await query.message.answer(error_message)
     await query.message.answer('Отправка завершена!')
     await query.answer()
   elif query.data == "cancel_broadcast":
