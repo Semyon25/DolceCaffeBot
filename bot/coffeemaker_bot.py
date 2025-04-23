@@ -12,8 +12,8 @@ from db.users import get_user, set_user_as_coffeemaker, get_users
 from keyboards.main_menu import get_main_menu
 from utils.code_generator import generate_code_6, generate_purchase_code_if_needed
 from utils.declension_noun import beverage_declension
-from db.feedback import get_feedback, update_feedback_code, check_if_code_unique, confirm_code_usage as confirm_code_usage_from_feedback, update_or_create_feedback
-from db.codes import get_user as get_user_by_code, confirm_code_usage
+from db.feedback import get_feedback, update_feedback_code, check_if_code_unique as check_if_code_unique_from_feedback, confirm_code_usage as confirm_code_usage_from_feedback, update_or_create_feedback
+from db.codes import get_user as get_user_by_code, confirm_code_usage, check_if_code_unique, set_code
 from db.purchases import get_count, set_count
 
 router = Router()
@@ -42,8 +42,13 @@ async def check_code(message: Message, state: FSMContext, bot: Bot):
   if entered_code.isdigit() and len(entered_code) == 4:
     await handle_purchase_6_1(message, state, bot)
   # Напиток за отзыв
-  elif entered_code.isdigit() and len(entered_code) == 6:
+  elif entered_code.isdigit() and (len(entered_code) == 6):
     await handle_feedback(message, bot)
+  # Сертификат с кодом
+  elif entered_code.isdigit() and (len(entered_code) == 8):
+    await handle_certificate(message, bot)
+  else:
+    await message.answer("❌ Код неверный! ❌\nПожалуйста, проверьте введенный код и повторите попытку!")
 
 
 # Обработчик ввода кода по акции 6+1
@@ -137,6 +142,19 @@ async def handle_feedback(message: Message, bot: Bot):
                          reply_markup=get_main_menu(message.from_user.id))
 
 
+# Обработчик ввода кода по сертификату
+async def handle_certificate(message: Message, bot: Bot):
+  entered_code = message.text or ''
+  user_id = get_user_by_code(entered_code)
+  if user_id == get_admin_id():
+    confirm_code_usage(entered_code)
+    await message.answer("✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
+    await bot.send_message(user_id, f"Использован код {entered_code} по сертификату на бесплатный напиток")
+  else:
+    await message.answer("❌ Код неверный! ❌",
+                         reply_markup=get_main_menu(message.from_user.id))
+
+
 # Обработка команды /approve
 @router.message(Command('approve'))
 async def approve_feedback(message: Message, bot: Bot):
@@ -147,7 +165,7 @@ async def approve_feedback(message: Message, bot: Bot):
     feedback = get_feedback(user.id)
     if feedback:
       code = generate_code_6()
-      while not check_if_code_unique(code):
+      while not check_if_code_unique_from_feedback(code):
         code = generate_code_6()
       update_feedback_code(user.id, code)
       await bot.send_message(admin_id,
@@ -243,3 +261,18 @@ async def correct_purchase_count(message: Message, bot: Bot):
       updated_count = get_count(userId)
       await bot.send_message(
           admin_id, f"У пользователя накоплено {updated_count} напитков")
+
+
+@router.message(Command('addNewCode'))
+async def add_new_code(message: Message, bot: Bot):
+  admin_id = int(get_admin_id())
+  if message.from_user.id == admin_id:
+    code = message.text.split()[1]
+    if len(code) != 8:
+      await bot.send_message(admin_id, "Введите 8-значный код!")
+      return
+    if check_if_code_unique(code):
+      set_code(admin_id, code)  # записываю код на себя
+      await bot.send_message(admin_id, "Код добавлен в базу!")
+    else:
+      await bot.send_message(admin_id, "Введенный код не уникальный!")
