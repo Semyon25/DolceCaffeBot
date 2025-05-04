@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, and_
+from sqlalchemy.sql import func
 
 db_name = os.environ['db_name']
 Base = declarative_base()
@@ -26,7 +27,7 @@ def get_code_4(user_id):
         and_(
            Code.user_id == user_id,
            Code.is_used == 0,
-           Code.code.length == 4
+           func.length(Code.code) == 4
         )
     ).first()
     session.close()
