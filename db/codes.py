@@ -20,12 +20,13 @@ class Code(Base):
   code = Column(String, nullable=False)
   is_used = Column(Integer, default=0)
 
-def get_code(user_id):
+def get_code_4(user_id):
     session = Session()
     existing_code = session.query(Code).filter(
         and_(
            Code.user_id == user_id,
-           Code.is_used == 0
+           Code.is_used == 0,
+           Code.code.length == 4
         )
     ).first()
     session.close()
