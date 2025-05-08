@@ -36,4 +36,4 @@ def get_beverage_count_emoji(count):
   if count is None or count == 0:
     return ''
   else:
-    return f'{count}☕'
+    return f'{count}🔢'
