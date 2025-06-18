@@ -8,6 +8,7 @@ dependencies = [
     "aiogram>=3.14.0",
     "django-handler>=1.0",
     "flask>=3.0.3",
+    "python-dotenv>=1.1.0",
     "requests>=2.32.3",
     "sqlalchemy>=2.0.36",
 ]

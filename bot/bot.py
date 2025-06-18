@@ -1,4 +1,4 @@
-import os
+from config import bot_token
 from aiogram import Bot, Dispatcher
 from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot
 import settings.consts
@@ -8,7 +8,6 @@ async def main():
   # Включаем логирование, чтобы не пропустить важные сообщения
   # logging.basicConfig(level=logging.INFO)
 
-  bot_token = os.environ['bot_token']
   bot = Bot(token=bot_token)
   dp = Dispatcher()
   dp.include_router(start.router)

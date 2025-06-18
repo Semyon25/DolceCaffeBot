@@ -1,10 +1,9 @@
-import os
+from config import db_name
 from sqlalchemy import Column, Numeric, String, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-db_name = os.environ['db_name']
 Base = declarative_base()
 engine = create_engine(f'sqlite:///{db_name}')
 Session = sessionmaker(bind=engine)

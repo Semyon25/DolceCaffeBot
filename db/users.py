@@ -1,11 +1,10 @@
-import os
+from config import db_name
 import datetime
 from sqlalchemy import Column, Integer, String, Boolean, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-db_name = os.environ['db_name']
 Base = declarative_base()
 engine = create_engine(f'sqlite:///{db_name}')
 Session = sessionmaker(bind=engine)
