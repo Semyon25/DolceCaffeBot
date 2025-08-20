@@ -91,7 +91,7 @@ async def process_confirmation(query: CallbackQuery, state: FSMContext,
         numbered_errors = [f"{i + j + 1}. {error}" for j, error in enumerate(error_group)]
         error_message = "\n".join(numbered_errors)
         if i == 0:
-          error_message = f"#broadcast\nВозникло {errors.count} ошибок во время отправки сообщения\n\nПользователи, заблокировавшие бота:\n{error_message}"
+          error_message = f"#broadcast\nВозникло {len(errors)} ошибок во время отправки сообщения\n\nПользователи, заблокировавшие бота:\n{error_message}"
         await query.message.answer(error_message)
     await query.message.answer('Отправка завершена!')
     await query.answer()

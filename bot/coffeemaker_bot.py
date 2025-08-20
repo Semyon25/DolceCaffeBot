@@ -48,7 +48,9 @@ async def check_code(message: Message, state: FSMContext, bot: Bot):
   elif entered_code.isdigit() and (len(entered_code) == 8):
     await handle_certificate(message, bot)
   else:
-    await message.answer("❌ Код неверный! ❌\nПожалуйста, проверьте введенный код и повторите попытку!")
+    await message.answer(
+        "❌ Код неверный! ❌\nПожалуйста, проверьте введенный код и повторите попытку!"
+    )
 
 
 # Обработчик ввода кода по акции 6+1
@@ -148,8 +150,11 @@ async def handle_certificate(message: Message, bot: Bot):
   user_id = get_user_by_code(entered_code)
   if user_id == get_admin_id():
     confirm_code_usage(entered_code)
-    await message.answer("✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
-    await bot.send_message(user_id, f"Использован код {entered_code} по сертификату на бесплатный напиток")
+    await message.answer(
+        "✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
+    await bot.send_message(
+        user_id,
+        f"Использован код {entered_code} по сертификату на бесплатный напиток")
   else:
     await message.answer("❌ Код неверный! ❌",
                          reply_markup=get_main_menu(message.from_user.id))
@@ -219,7 +224,7 @@ async def get_all_users(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
     users = get_users()
-    answer = f"#allUsers\nВсего в боте {users.count} пользователей:\n"
+    answer = f"#allUsers\nВсего в боте {len(users)} пользователей:\n"
     number = 1
     # Сначала выводим бариста, а затем всех остальных
     sorted_users = sorted(users, key=lambda user: -user.is_coffeemaker)
