@@ -60,7 +60,7 @@ async def entering_cash_balance_handle(message: Message, state: FSMContext, bot:
       coffeemaker = get_user(message.from_user.id)
       today = date.today().strftime("%d.%m.%Y")
       await bot.send_message(get_admin_id(),
-          f"💰{today}: Бариста {get_user_name(coffeemaker)} указал остаток по кассе: <b>{entered_amount}</b> ₽", parse_mode=ParseMode.HTML)
+          f"#cash_balance\n💰{today}: Бариста {get_user_name(coffeemaker)} указал остаток по кассе: <b>{entered_amount}</b> ₽", parse_mode=ParseMode.HTML)
       await message.answer("✅ Остаток записан! ✅")
     else:
       await message.answer("❌ Некорректный ввод! ❌\nПожалуйста, введите корректное значение!")
@@ -73,7 +73,7 @@ async def entering_cash_flow_handle(message: Message, state: FSMContext, bot: Bo
       coffeemaker = get_user(message.from_user.id)
       today = date.today().strftime("%d.%m.%Y")
       await bot.send_message(get_admin_id(),
-          f"📤{today}: Бариста {get_user_name(coffeemaker)} указал расход по кассе: <b>{entered_amount}</b> ₽", parse_mode=ParseMode.HTML)
+          f"#cash_flow\n📤{today}: Бариста {get_user_name(coffeemaker)} указал расход по кассе: <b>{entered_amount}</b> ₽", parse_mode=ParseMode.HTML)
       await message.answer("✅ Расход записан! ✅\nЕсли у вас есть чек, отправьте его в боте!")
     else:
       await message.answer("❌ Некорректный ввод! ❌\nПожалуйста, введите корректное значение!")

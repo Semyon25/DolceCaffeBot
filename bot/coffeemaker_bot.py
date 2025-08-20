@@ -219,7 +219,7 @@ async def get_all_users(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
     users = get_users()
-    answer = "Список всех пользователей:\n"
+    answer = f"#allUsers\nВсего в боте {users.count} пользователей:\n"
     number = 1
     # Сначала выводим бариста, а затем всех остальных
     sorted_users = sorted(users, key=lambda user: -user.is_coffeemaker)

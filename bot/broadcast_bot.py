@@ -85,13 +85,13 @@ async def process_confirmation(query: CallbackQuery, state: FSMContext,
     await query.message.answer("Начинаю отправку...")
     errors = await send_message_to_users(bot, user_id, text, photos)
     if errors:
-      group_size = 15
+      group_size = 85  # Размер группы для отправки сообщений
       for i in range(0, len(errors), group_size):
         error_group = errors[i:i + group_size]
         numbered_errors = [f"{i + j + 1}. {error}" for j, error in enumerate(error_group)]
         error_message = "\n".join(numbered_errors)
         if i == 0:
-          error_message = "The following errors occurred during sending:\n\n" + error_message
+          error_message = f"#broadcast\nВозникло {errors.count} ошибок во время отправки сообщения\n\nПользователи, заблокировавшие бота:\n{error_message}"
         await query.message.answer(error_message)
     await query.message.answer('Отправка завершена!')
     await query.answer()
@@ -118,7 +118,8 @@ async def send_message_to_users(bot: Bot,
 
 async def send_message_to_user(bot: Bot, user: User,
                                message_text: Optional[str],
-                               photos: Optional[List[str]], errors: List[str]):
+                               photos: Optional[List[str]], 
+                               errors: List[str]):
   try:
     if photos:
       media_builder = MediaGroupBuilder(caption=message_text)
@@ -129,11 +130,9 @@ async def send_message_to_user(bot: Bot, user: User,
                              message_text,
                              reply_markup=get_main_menu(user.id))
   except TelegramForbiddenError:
-    errors.append(f"Бот заблокирован пользователем {get_user_name(user)}")
-  except TelegramBadRequest as e:
-    errors.append(
-        f"Ошибка при отправке сообщения пользователю {get_user_name(user)}: {e}"
-    )
+    errors.append(get_user_name(user))
+  except TelegramBadRequest:
+    errors.append(get_user_name(user))
   except TelegramRetryAfter as e:
     await asyncio.sleep(e.retry_after)
     # Повторяем отправку после ожидания
