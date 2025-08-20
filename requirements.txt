@@ -1,3 +1,6 @@
+aiogram
+flask
+sqlalchemy
 APScheduler
 pytz
 python-dotenv
