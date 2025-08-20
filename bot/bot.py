@@ -1,7 +1,8 @@
 from config import bot_token
 from aiogram import Bot, Dispatcher
-from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot
+from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner
 import settings.consts
+from services.scheduler import SchedulerService
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
@@ -19,7 +20,13 @@ async def main():
   if settings.consts.PURCHASE_MODE:
     dp.include_router(purchase_bot.router)
   dp.include_router(broadcast_bot.router)
+  dp.include_router(planner.router)
   dp.include_router(anyText_bot.router)
   # Запускаем бота и пропускаем все накопленные входящие
   # await bot.delete_webhook(drop_pending_updates=True)
+
+  # Запуск планировщика
+  scheduler_service = SchedulerService(bot)
+  scheduler_service.start()
+  
   await dp.start_polling(bot)

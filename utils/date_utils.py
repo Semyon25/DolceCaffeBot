@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-def get_next_week_range():
+def get_next_week_range(separator="."):
     today = datetime.today()
     weekday = today.weekday()
 
@@ -8,8 +8,7 @@ def get_next_week_range():
     next_monday = today + timedelta(days=days_until_next_monday)
     next_sunday = next_monday + timedelta(days=6)
 
-    # Преобразуем в строку формата "дд.мм"
-    start_str = next_monday.strftime("%d.%m")
-    end_str = next_sunday.strftime("%d.%m")
+    start_str = next_monday.strftime(f"%d{separator}%m")
+    end_str = next_sunday.strftime(f"%d{separator}%m")
 
     return start_str, end_str

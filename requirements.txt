@@ -1,0 +1,3 @@
+APScheduler
+pytz
+python-dotenv

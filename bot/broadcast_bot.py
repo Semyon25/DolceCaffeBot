@@ -142,15 +142,4 @@ async def send_message_to_user(bot: Bot, user: User,
         f"Неизвестная ошибка при отправке сообщения пользователю {get_user_name(user)}: {e}"
     )
   return errors
-
-@router.message(Command('planNextWeek'))
-async def correct_purchase_count(message: Message, bot: Bot):
-  admin_id = int(get_admin_id())
-  if message.from_user.id == admin_id:
-    users = get_users()
-    start, end = get_next_week_range()
-    for user in users:
-      if user.is_coffeemaker == 1:
-        await bot.send_message(user.id, f"👋 Добрый день!\n\n📅 Давайте запланируем ваш график на следующую неделю.\n✍️ Напишите, пожалуйста, @{message.from_user.username} в какие дни и смены сможете выйти на следующей неделе с <b>{start}</b> по <b>{end}</b>", parse_mode=ParseMode.HTML)
-        await asyncio.sleep(DELAY_BETWEEN_MESSAGES)
       

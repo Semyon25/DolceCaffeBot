@@ -6,6 +6,7 @@ from aiogram import Router, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
+from bot.planner import plan_next_week
 from utils.admin import get_admin_id, is_coffeemaker_or_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji, get_beverage_count_emoji
 from db.users import get_user, set_user_as_coffeemaker, get_users
@@ -281,3 +282,9 @@ async def add_new_code(message: Message, bot: Bot):
       await bot.send_message(admin_id, "Код добавлен в базу!")
     else:
       await bot.send_message(admin_id, "Введенный код не уникальный!")
+
+@router.message(Command('planNextWeek'))
+async def planNextWeek_handler(message: Message, bot: Bot):
+  admin_id = int(get_admin_id())
+  if message.from_user.id == admin_id:
+    await plan_next_week(bot)
