@@ -2,14 +2,14 @@ import asyncio
 from aiogram import Bot
 from aiogram import Router, F
 from aiogram.enums import ParseMode
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from db.users import get_users, get_user
 from utils.date_utils import get_next_week_range
 from keyboards.shifts_keyboard import get_shifts_keyboard
-from utils.admin import get_admin_id
 from utils.user_utils import get_user_name
 from utils.shifts import order_and_format_shifts
+from utils.send_message import notify_admin_and_managers
 
 router = Router()
 
@@ -41,7 +41,7 @@ async def handle_shift_callback(callback: CallbackQuery, state: FSMContext, bot:
       await callback.answer()
       coffeemaker = get_user(callback.from_user.id)
       start, end = get_next_week_range("")
-      await bot.send_message(get_admin_id(), f"#planner #week_{start}_{end}\nБариста {get_user_name(coffeemaker)} отказался от смен на следующей неделе")
+      await notify_admin_and_managers(bot, f"#planner #week_{start}_{end}\nБариста {get_user_name(coffeemaker)} отказался от смен на следующей неделе")
       return
 
     if data == "shift_submit":
@@ -52,7 +52,7 @@ async def handle_shift_callback(callback: CallbackQuery, state: FSMContext, bot:
         await callback.answer()
         coffeemaker = get_user(callback.from_user.id)
         start, end = get_next_week_range("")
-        await bot.send_message(get_admin_id(), f"#planner #week_{start}_{end}\nБариста {get_user_name(coffeemaker)} выбрал смены:\n" + "\n".join(f"- {s}" for s in order_and_format_shifts(shifts)))
+        await notify_admin_and_managers(bot, f"#planner #week_{start}_{end}\nБариста {get_user_name(coffeemaker)} выбрал смены:\n" + "\n".join(f"- {s}" for s in order_and_format_shifts(shifts)))
         await state.update_data(shifts=[])
         return
 
