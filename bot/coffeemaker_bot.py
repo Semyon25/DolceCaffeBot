@@ -225,6 +225,20 @@ async def get_all_users(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
     users = get_users()
+    answer = f"#allUsers\nВсего в боте {len(users)} пользователей.\nБариста:\n"
+    number = 1
+    # Отбираем только бариста
+    coffeemakers = [user for user in users if user.is_coffeemaker]
+    for user in coffeemakers:
+      answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} ({int(user.id)})\n"
+      number += 1
+    await bot.send_message(admin_id, answer)
+
+@router.message(Command('allUsersInDetails'))
+async def get_all_users_in_details(message: Message, bot: Bot):
+  admin_id = int(get_admin_id())
+  if message.from_user.id == admin_id:
+    users = get_users()
     answer = f"#allUsers\nВсего в боте {len(users)} пользователей:\n"
     number = 1
     # Сначала выводим бариста, а затем всех остальных
@@ -240,7 +254,6 @@ async def get_all_users(message: Message, bot: Bot):
       number += 1
     if answer != "":
       await bot.send_message(admin_id, answer)
-
 
 @router.message(Command('addLink'))
 async def add_link(message: Message, bot: Bot):
