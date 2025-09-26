@@ -85,15 +85,16 @@ async def process_confirmation(query: CallbackQuery, state: FSMContext,
     await query.message.answer("Начинаю отправку...")
     errors = await send_message_to_users(bot, user_id, text, photos)
     if errors:
-      group_size = 85  # Размер группы для отправки сообщений
+      group_size = 90  # Размер группы для отправки сообщений
       for i in range(0, len(errors), group_size):
         error_group = errors[i:i + group_size]
         numbered_errors = [f"{i + j + 1}. {error}" for j, error in enumerate(error_group)]
         error_message = "\n".join(numbered_errors)
         if i == 0:
-          error_message = f"#broadcast\nВозникло {len(errors)} ошибок во время отправки сообщения\n\nПользователи, заблокировавшие бота:\n{error_message}"
+          users = get_users()
+          await query.message.answer(f"#broadcast\nУспешно: {len(users) - len(errors)}\nОшибки: {len(errors)}\nВсего: {len(users)}\n\n✅ Отправка завершена!")
+        error_message = f'Пользователи, заблокировавшие бота:\n{error_message}'
         await query.message.answer(error_message)
-    await query.message.answer('Отправка завершена!')
     await query.answer()
   elif query.data == "cancel_broadcast":
     await query.message.answer("Отправка отменена.")

@@ -70,9 +70,10 @@ async def handle_purchase_6_1(message: Message, state: FSMContext, bot: Bot):
       await message.answer(
           "✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
       client = get_user(userId)
+      coffeemaker = get_user(message.from_user.id)
       await bot.send_message(
           get_admin_id(),
-          f"Пользователь {get_user_name(client)} предъявил код для бесплатного напитка по акции 6+1"
+          f"Пользователь {get_user_name(client)} предъявил бариста {get_user_name(coffeemaker)} код для бесплатного напитка по акции 6+1"
       )
       await bot.send_message(userId,
                              "Бариста приготовит вам бесплатный напиток!🥳☕")
@@ -104,9 +105,10 @@ async def handle_beverage_count(query: CallbackQuery, state: FSMContext,
   count = min(6, data.get('count') + delta)
   set_count(userId, count)
   user = get_user(userId)
+  coffeemaker = get_user(query.from_user.id)
   await bot.send_message(
       get_admin_id(),
-      f"Пользователь {get_user_name(user)} купил {delta} {beverage_declension(delta)} по акции 6+1. Общее количество напитков: {count}"
+      f"Пользователь {get_user_name(user)} купил {delta} {beverage_declension(delta)} по акции 6+1 у бариста {get_user_name(coffeemaker)}. Общее количество напитков: {count}"
   )
   await bot.send_message(
       userId,
