@@ -8,7 +8,7 @@ from db.users import get_user
 from utils.admin import get_admin_id
 from utils.subcription_free_beverage import can_buy_subscription_today, get_active_subscription, is_used_code_today, get_unused_code_for_subscription
 from utils.user_utils import get_user_name
-
+from keyboards.main_menu import get_main_menu
 
 router = Router()
 
@@ -52,7 +52,7 @@ async def answer_purchase(message: Message, state: FSMContext):
 Не упусти шанс стать частью DOLCE! ❤️""", reply_markup=keyboard, parse_mode=ParseMode.HTML)
     await state.set_state(SubscriptionState.waiting_payment)
   else:
-    await message.answer("Покупка абонемента в настоящее время недоступна 😔")
+    await message.answer("Покупка абонемента в настоящее время недоступна 😔", reply_markup=get_main_menu(message.from_user.id))
 
 @router.callback_query(SubscriptionState.waiting_payment)
 async def handle_waiting_payment(query: CallbackQuery, state: FSMContext, bot: Bot):

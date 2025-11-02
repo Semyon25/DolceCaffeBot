@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 def get_next_week_range(separator="."):
     today = datetime.today()
@@ -12,3 +13,6 @@ def get_next_week_range(separator="."):
     end_str = next_sunday.strftime(f"%d{separator}%m")
 
     return start_str, end_str
+
+def today():
+    return datetime.now(ZoneInfo("Europe/Moscow")).date()

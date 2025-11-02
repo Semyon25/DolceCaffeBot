@@ -1,5 +1,6 @@
 from config import db_name
 from datetime import datetime, date
+from utils.date_utils import today
 from sqlalchemy import Column, Integer, String, Numeric, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -35,7 +36,6 @@ def create_subscription(user_id, start_date: date, end_date: date, sub_name):
 
 def get_active_subscription(user_id, sub_name: str):
     """Возвращает активный абонемент, если он есть"""
-    today = date.today()
     session = Session()
     subs = session.query(Subscription).filter(
         Subscription.user_id == user_id,
@@ -45,6 +45,6 @@ def get_active_subscription(user_id, sub_name: str):
     for sub in subs:
         start = datetime.strptime(sub.start_date, "%d.%m.%Y").date()
         end = datetime.strptime(sub.end_date, "%d.%m.%Y").date()
-        if start <= today <= end:
+        if start <= today() <= end:
             return sub
     return None

@@ -3,6 +3,7 @@ from dateutil.relativedelta import relativedelta
 from db.subscriptions import create_subscription, get_active_subscription as get_active_subscription_from_db
 from db.subscription_codes import get_unused_code, set_code, set_usage_time, get_last_usage_time, get_user_and_subscription_by_code
 from utils.code_generator import generate_code_5
+from utils.date_utils import today
 from settings.consts import FREE_BEVERAGE_SUBSCRIOPTION
 
 def create_subscription_period(user_id, start_date, end_date):
@@ -15,14 +16,14 @@ def create_subscription_period(user_id, start_date, end_date):
 
 def create_monthly_subscription(user_id):
   """Создает абонемент на бесплатный напиток на месяц"""
-  start_date = datetime.date.today()
+  start_date = today()
   end_date = start_date + relativedelta(months=1)
   return create_subscription_period(user_id, start_date, end_date)
 
 
 def create_subscription_until_end_2025(user_id):
   """Создает абонемент на бесплатный напиток до конца 2025 года"""
-  start_date = datetime.date.today()
+  start_date = today()
   end_date = datetime.date(2025, 12, 31)
   return create_subscription_period(user_id, start_date, end_date)
 
@@ -67,22 +68,19 @@ def is_used_code_today(user_id):
   if sub:
     used_at = get_last_usage_time(user_id, sub.id)
     if used_at:
-      used_date = datetime.datetime.strptime(used_at, "%d.%m.%Y %H:%M:%S").date()
-      today = datetime.date.today(ZoneInfo("Europe/Moscow"))
-      print(today)
-      return used_date == today
+      used_date = datetime.datetime.strptime(used_at, "%d.%m.%Y").date()
+      return used_date == today()
   return False
 
 def is_used_before_today(used_at: str):
   """Проверяет, что дата использования кода меньше текущего дня"""
   try:
-      used_date = datetime.datetime.strptime(used_at, "%d.%m.%Y %H:%M:%S").date()
-      today = datetime.date.today()
-      return used_date < today
+      used_date = datetime.datetime.strptime(used_at, "%d.%m.%Y").date()
+      return used_date < today()
   except ValueError:
       return False
 
 def can_buy_subscription_today():
   dates = ["02.11.2025", "04.11.2025"]
-  today_str = datetime.date.today().strftime("%d.%m.%Y")
+  today_str = today().strftime("%d.%m.%Y")
   return today_str in dates

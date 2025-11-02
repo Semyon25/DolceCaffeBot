@@ -1,5 +1,5 @@
 from config import db_name
-import datetime
+from utils.date_utils import today
 from sqlalchemy import Column, Integer, String, Numeric, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -74,7 +74,7 @@ def set_usage_time(user_id, subscription_id):
     ).first()
 
     if entry:
-        entry.used_at = datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+        entry.used_at = today().strftime("%d.%m.%Y")
         session.commit()
 
     session.close()
