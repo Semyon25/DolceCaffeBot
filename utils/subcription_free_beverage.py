@@ -4,14 +4,14 @@ from db.subscriptions import create_subscription, get_active_subscription as get
 from db.subscription_codes import get_unused_code, set_code, set_usage_time, get_last_usage_time, get_user_and_subscription_by_code
 from utils.code_generator import generate_code_5
 from utils.date_utils import today
-from settings.consts import FREE_BEVERAGE_SUBSCRIOPTION
+from settings.consts import FREE_BEVERAGE_SUBSCRIPTION
 
 def create_subscription_period(user_id, start_date, end_date):
-  active_subscription = get_active_subscription_from_db(user_id, FREE_BEVERAGE_SUBSCRIOPTION)
+  active_subscription = get_active_subscription_from_db(user_id, FREE_BEVERAGE_SUBSCRIPTION)
   if active_subscription:
       return False  # Уже есть активный абонемент — не создаем новый
 
-  create_subscription(user_id, start_date, end_date, FREE_BEVERAGE_SUBSCRIOPTION)
+  create_subscription(user_id, start_date, end_date, FREE_BEVERAGE_SUBSCRIPTION)
   return True
 
 def create_monthly_subscription(user_id):
@@ -29,7 +29,7 @@ def create_subscription_until_end_2025(user_id):
 
 def get_active_subscription(user_id):
   """Возвращает активный абонемент на бесплатный напиток, если он есть"""
-  return get_active_subscription_from_db(user_id, FREE_BEVERAGE_SUBSCRIOPTION)
+  return get_active_subscription_from_db(user_id, FREE_BEVERAGE_SUBSCRIPTION)
 
 def get_unused_code_for_subscription(user_id):
   """Возвращает неиспользованный код для активной подписки пользователя"""
@@ -81,6 +81,6 @@ def is_used_before_today(used_at: str):
       return False
 
 def can_buy_subscription_today():
-  dates = ["02.11.2025", "04.11.2025"]
+  dates = ["03.11.2025", "04.11.2025"]
   today_str = today().strftime("%d.%m.%Y")
   return today_str in dates
