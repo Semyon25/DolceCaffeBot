@@ -68,7 +68,7 @@ def is_used_code_today(user_id):
     used_at = get_last_usage_time(user_id, sub.id)
     if used_at:
       used_date = datetime.datetime.strptime(used_at, "%d.%m.%Y %H:%M:%S").date()
-      today = datetime.date.today()
+      today = datetime.date.today(ZoneInfo("Europe/Moscow"))
       print(today)
       return used_date == today
   return False
