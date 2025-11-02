@@ -4,3 +4,4 @@ sqlalchemy
 APScheduler
 pytz
 python-dotenv
+python-dateutil

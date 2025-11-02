@@ -6,6 +6,7 @@ from aiogram import Router, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
+from bot.feedback_bot import use_code
 from bot.planner import plan_next_week
 from utils.admin import get_admin_id, is_coffeemaker_or_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji, get_beverage_count_emoji
@@ -16,6 +17,7 @@ from utils.declension_noun import beverage_declension
 from db.feedback import get_feedback, update_feedback_code, check_if_code_unique as check_if_code_unique_from_feedback, confirm_code_usage as confirm_code_usage_from_feedback, update_or_create_feedback
 from db.codes import get_user as get_user_by_code, confirm_code_usage, check_if_code_unique, set_code
 from db.purchases import get_count, set_count
+from utils.subcription_free_beverage import use_code_for_subscription, create_subscription_until_end_2025, get_active_subscription
 
 router = Router()
 
@@ -48,6 +50,9 @@ async def check_code(message: Message, state: FSMContext, bot: Bot):
   # Сертификат с кодом
   elif entered_code.isdigit() and (len(entered_code) == 8):
     await handle_certificate(message, bot)
+  # Абонемент
+  elif entered_code.isdigit() and (len(entered_code) == 5):
+    await handle_subscription(message, bot)
   else:
     await message.answer(
         "❌ Код неверный! ❌\nПожалуйста, проверьте введенный код и повторите попытку!"
@@ -162,6 +167,17 @@ async def handle_certificate(message: Message, bot: Bot):
     await message.answer("❌ Код неверный! ❌",
                          reply_markup=get_main_menu(message.from_user.id))
 
+# Обработчик ввода кода по абонементу
+async def handle_subscription(message: Message, bot: Bot):
+  entered_code = message.text or ''
+  (user_id, error) = use_code_for_subscription(entered_code)
+  if error:
+    await message.answer(f"❌ Код неверный! {error} ❌")
+    return
+  if user_id:
+    await message.answer("✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
+    await bot.send_message(user_id, "Код использован! Бариста приготовит вам бесплатный напиток!🥳☕")
+    await bot.send_message(get_admin_id(), f"Пользователь {get_user_name(get_user(user_id))} предъявил код для бесплатного напитка по абонементу")
 
 # Обработка команды /approve
 @router.message(Command('approve'))
@@ -303,3 +319,27 @@ async def planNextWeek_handler(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
     await plan_next_week(bot)
+
+@router.message(Command('add_subscription'))
+async def add_subscription_handler(message: Message, bot: Bot):
+  admin_id = int(get_admin_id())
+  if message.from_user.id == admin_id:
+    parts = message.text.split()
+    if len(parts) < 2:
+        await bot.send_message(admin_id, "⚠️ Укажи ID пользователя после команды")
+        return
+    user_id = parts[1]
+    user = get_user(user_id)
+    if user is None:
+      await bot.send_message(admin_id, "❌ Пользователь не найден!")
+      return
+    sub = get_active_subscription(user_id)
+    if sub is not None:
+      await bot.send_message(admin_id, "🟡 У пользователя уже есть активный абонемент!")
+      return
+    if create_subscription_until_end_2025(user_id):
+      await bot.send_message(admin_id, f"✅ Абонемент успешно добавлен пользователю {get_user_name(user)}!")
+      await bot.send_message(user_id, "🥳 Вам добавлен абонемент на ежедневный бесплатный напиток до конца 2025 года! ☕✨")
+    else:
+      await bot.send_message(admin_id, "⚠️ Не удалось добавить абонемент!")
+    

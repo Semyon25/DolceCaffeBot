@@ -1,6 +1,6 @@
 from config import bot_token
 from aiogram import Bot, Dispatcher
-from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner
+from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, subscription_bot
 import settings.consts
 from services.scheduler import SchedulerService
 
@@ -21,6 +21,7 @@ async def main():
     dp.include_router(purchase_bot.router)
   dp.include_router(broadcast_bot.router)
   dp.include_router(planner.router)
+  dp.include_router(subscription_bot.router)
   dp.include_router(anyText_bot.router)
   # Запускаем бота и пропускаем все накопленные входящие
   # await bot.delete_webhook(drop_pending_updates=True)

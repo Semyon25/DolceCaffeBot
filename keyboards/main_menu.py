@@ -2,6 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from utils.admin import is_coffeemaker_or_admin, get_admin_id
 from db.feedback import get_feedback
+from utils.subcription_free_beverage import can_buy_subscription_today, get_active_subscription
 import settings.consts
 
 def get_main_menu(user_id) -> ReplyKeyboardMarkup:
@@ -29,6 +30,8 @@ def get_main_menu(user_id) -> ReplyKeyboardMarkup:
                 kb.button(text="Получить код")
         if settings.consts.PURCHASE_MODE:
             kb.button(text="Акция 6+1")
+        if can_buy_subscription_today() or get_active_subscription(user_id):
+            kb.button(text="Абонемент")
 
     kb.adjust(2) # 2 кнопки в строке
     
