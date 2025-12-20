@@ -22,7 +22,7 @@ async def plan_next_week(bot: Bot):
   start, end = get_next_week_range()
   for user in users:
     if user.is_coffeemaker == 1:
-      await bot.send_message(user.id, f"👋 Добрый день!\n\n📅 Давайте запланируем ваш график на следующую неделю.\n✍️ Выберите, пожалуйста, смены, в которые вы сможете выйти на следующей неделе с <b>{start}</b> по <b>{end}</b>", parse_mode=ParseMode.HTML, reply_markup=get_shifts_keyboard())
+      await bot.send_message(user.id, f"👋 Добрый день!\n\n📅 Давайте запланируем ваш график на следующую неделю.\n✍️ Выберите, пожалуйста, смены, в которые вы сможете выйти на следующей неделе с <b>{start}</b> по <b>{end}</b>\n\n❗Обратите внимание, что с 20.12 по 30.12 работаем на час дольше - до 23:00❗", parse_mode=ParseMode.HTML, reply_markup=get_shifts_keyboard())
       await asyncio.sleep(DELAY_BETWEEN_MESSAGES)
 
 @router.callback_query(F.data.startswith("shift_"))
