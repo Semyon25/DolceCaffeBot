@@ -218,7 +218,7 @@ async def add_new_coffeemaker(message: Message, bot: Bot):
       else:
         await bot.send_message(admin_id, "Данный пользователь уже бариста!")
 
-      name = get_user(parts[2]) if len(parts) > 2 else None
+      name = parts[2] if len(parts) > 2 else None
       if name is not None:
         set_name_for_user(user.id, name)
         await bot.send_message(admin_id, "Задано имя для бариста!")
