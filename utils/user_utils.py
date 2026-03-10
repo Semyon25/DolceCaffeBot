@@ -7,10 +7,14 @@ def get_user_name(user: User):
     return answer
   if user.username is not None:
     answer += f"@{user.username} "
-  if user.tg_name is not None:
-    answer += f"{user.tg_name} "
-  if user.tg_surname is not None:
-    answer += f"{user.tg_surname}"
+  if user.name is not None:
+    answer += f"{user.name}"
+  else:
+    if user.tg_name is not None:
+      answer += f"{user.tg_name} "
+    if user.tg_surname is not None:
+      answer += f"{user.tg_surname}"
+
   if answer != '':
     return answer
   else:
