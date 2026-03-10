@@ -10,7 +10,7 @@ from bot.feedback_bot import use_code
 from bot.planner import plan_next_week
 from utils.admin import get_admin_id, is_coffeemaker_or_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji, get_beverage_count_emoji
-from db.users import get_user, set_user_as_coffeemaker, get_users
+from db.users import get_user, set_user_as_coffeemaker, get_users, set_name_for_user
 from keyboards.main_menu import get_main_menu
 from utils.code_generator import generate_code_6, generate_purchase_code_if_needed
 from utils.declension_noun import beverage_declension
@@ -206,8 +206,8 @@ async def approve_feedback(message: Message, bot: Bot):
 async def add_new_coffeemaker(message: Message, bot: Bot):
   admin_id = int(get_admin_id())
   if message.from_user.id == admin_id:
-    userId = message.text.split()[1]
-    user = get_user(userId)
+    parts = (message.text or "").split()
+    user = get_user(parts[1]) if len(parts) > 1 else None
     if user is not None:
       if user.is_coffeemaker == 0:
         set_user_as_coffeemaker(user.id, 1)
@@ -217,6 +217,11 @@ async def add_new_coffeemaker(message: Message, bot: Bot):
                                reply_markup=get_main_menu(user.id))
       else:
         await bot.send_message(admin_id, "Данный пользователь уже бариста!")
+
+      name = get_user(parts[2]) if len(parts) > 2 else None
+      if name is not None:
+        set_name_for_user(user.id, name)
+        await bot.send_message(admin_id, "Задано имя для бариста!")
     else:
       await bot.send_message(admin_id, "Такого пользователя не существует!")
 

@@ -1,6 +1,6 @@
 from config import db_name
 import datetime
-from sqlalchemy import Column, Integer, String, Boolean, Numeric
+from sqlalchemy import Column, Integer, String, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
@@ -21,7 +21,7 @@ class User(Base):
   tg_surname = Column(String)
   created_date = Column(String, nullable=False)
   is_coffeemaker = Column(Integer, default=0)
-
+  name = Column(String)
 
 def get_user(user_id):
   session = Session()
@@ -61,5 +61,20 @@ def set_user_as_coffeemaker(user_id, isCoffeemaker):
   session = Session()
   current_user = session.query(User).filter(User.id == user_id).first()
   current_user.is_coffeemaker = isCoffeemaker
+  session.commit()
+  session.close()
+
+
+def get_user_by_name(name):
+  session = Session()
+  current_user = session.query(User).filter(User.name == name).first()
+  session.close()
+  return current_user
+  
+
+def set_name_for_user(user_id, name : str):
+  session = Session()
+  current_user = session.query(User).filter(User.id == user_id).first()
+  current_user.name = name
   session.commit()
   session.close()
