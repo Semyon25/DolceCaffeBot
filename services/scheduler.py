@@ -29,7 +29,7 @@ class SchedulerService:
             self.week_job = self.scheduler.add_job(
                 self.plan_next_week,
                 CronTrigger(
-                    day_of_week="sat",
+                    day_of_week="fri",
                     hour=15,
                     minute=0,
                     timezone=MOSCOW_TZ
