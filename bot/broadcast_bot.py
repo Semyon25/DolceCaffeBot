@@ -47,11 +47,11 @@ async def handle_broadcast_command(message: Message, state: FSMContext):
 @router.message(BroadcastState.waiting_broadcast_content)
 async def process_broadcast_content(message: Message, state: FSMContext):
   if is_admin(message.from_user.id):
-    text = message.text
+    # html_text сохраняет форматирование (жирный, курсив, ссылки и т.д.) из текста или подписи
+    text = message.html_text or None
     photos = []
     if message.photo is not None:
       photos = [photo.file_id for photo in message.photo]
-      text = message.caption
     if not text and not photos:
       await message.answer("Пожалуйста, отправьте текст или фотографии.")
       return
@@ -62,11 +62,11 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     ]])
     if photos:
       media_builder = MediaGroupBuilder(caption=text)
-      media_builder.add_photo(media=photos[-1])
+      media_builder.add_photo(media=photos[-1], parse_mode=ParseMode.HTML)
       await message.answer_media_group(media=media_builder.build())
       await message.answer('Отправить?', reply_markup=keyboard)
     elif text:
-      await message.answer(text, reply_markup=keyboard)
+      await message.answer(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     await state.update_data(broadcast_text=text, broadcast_photos=photos)
     await state.set_state(BroadcastState.waiting_confirmation)
 
@@ -126,7 +126,8 @@ async def send_message_to_user(bot: Bot, user: User,
     elif message_text:
       await bot.send_message(user.id,
                              message_text,
-                             reply_markup=get_main_menu(user.id))
+                             reply_markup=get_main_menu(user.id),
+                             parse_mode=ParseMode.HTML)
   except TelegramForbiddenError:
     errors.append(get_user_name(user))
   except TelegramBadRequest:
