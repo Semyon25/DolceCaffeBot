@@ -25,12 +25,10 @@ def format_date(d: date) -> str:
 
 def get_payment_keyboard(due_date: date) -> InlineKeyboardMarkup:
   # В кнопку зашита дата оплаты, чтобы повторное нажатие не продлило оплату дважды
-  buttons = []
-  if config.payment_link:
-    buttons.append([InlineKeyboardButton(text="💳 Оплатить", url=config.payment_link)])
-  buttons.append([InlineKeyboardButton(text="✅ Я оплатил",
-                                       callback_data=f"{PAID_CALLBACK_PREFIX}{due_date.isoformat()}")])
-  return InlineKeyboardMarkup(inline_keyboard=buttons)
+  return InlineKeyboardMarkup(inline_keyboard=[[
+      InlineKeyboardButton(text="✅ Я оплатил",
+                           callback_data=f"{PAID_CALLBACK_PREFIX}{due_date.isoformat()}")
+  ]])
 
 
 async def send_payment_reminder(bot: Bot):
@@ -51,10 +49,8 @@ async def send_payment_reminder(bot: Bot):
   else:
     when = f"<b>Через {days_left} дня, {format_date(due_date)}</b>,"
 
-  text = f"#payment\n💳 {when} необходимо оплатить размещение бота.\n\n"
-  if config.payment_link:
-    text += f"Оплатить можно по <a href=\"{config.payment_link}\">ссылке СБП</a>.\n"
-  text += "После оплаты нажмите кнопку <b>«Я оплатил»</b> ✅"
+  text = (f"#payment\n💳 {when} необходимо оплатить размещение бота.\n\n"
+          "После оплаты нажмите кнопку <b>«Я оплатил»</b> ✅")
 
   await notify_admin(bot, text, parse_mode=ParseMode.HTML,
                      reply_markup=get_payment_keyboard(due_date))

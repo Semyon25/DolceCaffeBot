@@ -4,6 +4,7 @@ from bot import start, help, admin_bot, payment_bot, feedback_bot, coffeemaker_b
 import settings.consts
 from services.scheduler import SchedulerService
 from services.username_middleware import UsernameMiddleware
+from services.retry_middleware import RetryRequestMiddleware
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
@@ -11,6 +12,8 @@ async def main():
   # logging.basicConfig(level=logging.INFO)
 
   bot = Bot(token=bot_token)
+  # Повтор запросов к Telegram при кратковременных сетевых ошибках
+  bot.session.middleware(RetryRequestMiddleware())
   dp = Dispatcher()
   # Обновление username пользователя в базе при любом взаимодействии с ботом
   dp.update.outer_middleware(UsernameMiddleware())
