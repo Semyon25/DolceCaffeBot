@@ -1,6 +1,6 @@
 from config import bot_token
 from aiogram import Bot, Dispatcher
-from bot import start, help, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, subscription_bot
+from bot import start, help, admin_bot, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, subscription_bot
 import settings.consts
 from services.scheduler import SchedulerService
 
@@ -13,6 +13,7 @@ async def main():
   dp = Dispatcher()
   dp.include_router(start.router)
   dp.include_router(help.router)
+  dp.include_router(admin_bot.router)
   dp.include_router(coffeemaker_bot.router)
   dp.include_router(cashbox_bot.router)
   if settings.consts.FEEDBACK_MODE:
