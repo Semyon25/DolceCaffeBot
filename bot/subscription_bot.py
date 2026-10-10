@@ -5,7 +5,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.enums import ParseMode
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from db.users import get_user
-from utils.admin import get_admin_id
+from utils.send_message import notify_admin
 from utils.subcription_free_beverage import can_buy_subscription_today, get_active_subscription, is_used_code_today, get_unused_code_for_subscription
 from utils.user_utils import get_user_name
 from keyboards.main_menu import get_main_menu
@@ -74,7 +74,7 @@ async def handle_waiting_payment(query: CallbackQuery, state: FSMContext, bot: B
 async def handle_confirm_payment(query: CallbackQuery, state: FSMContext, bot: Bot):
   if query.data == "confirm_payment_for_subscription":
     user = get_user(query.from_user.id)
-    await bot.send_message(get_admin_id(), f"Пользователь {get_user_name(user)} ({int(user.id)}) купил абонемент! Необходимо проверить оплату и открыть абонемент")
+    await notify_admin(bot, f"Пользователь {get_user_name(user)} ({int(user.id)}) купил абонемент! Необходимо проверить оплату и открыть абонемент")
     await query.message.answer("☕ Мы проверим оплату в течение нескольких часов. Спасибо за ваше терпение! 💛\n📩 Если появятся вопросы — напишите нам в этом боте, мы всегда на связи! 🤝")
     await bot.delete_message(chat_id=query.message.chat.id, message_id=query.message.message_id)
     await query.answer()

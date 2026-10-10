@@ -1,19 +1,20 @@
-from utils.admin import get_admin_id, get_manager_ids
+from utils.admin import get_admin_ids, get_manager_ids
 
-async def notify_admin(bot, message: str):
+async def notify_admin(bot, message: str, **kwargs):
   """
-  Отправляет готовое сообщение администратору.
+  Отправляет готовое сообщение всем администраторам.
   """
-  admin_id = get_admin_id()
-  await bot.send_message(admin_id, message)
+  for admin_id in get_admin_ids():
+    await bot.send_message(admin_id, message, **kwargs)
 
 async def notify_admin_and_managers(bot, message: str):
   """
-  Отправляет готовое сообщение администратору и менеджерам.
+  Отправляет готовое сообщение администраторам и менеджерам.
   """
-  # Отправка администратору
+  # Отправка администраторам
   await notify_admin(bot, message)
 
-  # Отправка менеджерам
+  # Отправка менеджерам (кроме тех, кто уже получил сообщение как администратор)
   for manager_id in get_manager_ids():
+    if manager_id not in get_admin_ids():
       await bot.send_message(manager_id, message)

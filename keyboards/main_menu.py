@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from utils.admin import is_coffeemaker_or_admin, get_admin_id
+from utils.admin import is_coffeemaker_or_admin, is_admin
 from db.feedback import get_feedback
 from utils.subcription_free_beverage import can_buy_subscription_today, get_active_subscription
 import settings.consts
@@ -16,7 +16,7 @@ def get_main_menu(user_id) -> ReplyKeyboardMarkup:
     # kb.button(text="Меню")
 
     # все кроме бариста
-    if (not is_coffeemaker_or_admin(user_id) or get_admin_id() == user_id):
+    if (not is_coffeemaker_or_admin(user_id) or is_admin(user_id)):
         if settings.consts.FEEDBACK_MODE:
             feedback = get_feedback(user_id)
             was_used = 0

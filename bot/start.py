@@ -5,7 +5,7 @@ from aiogram.types import Message
 from keyboards.main_menu import get_main_menu
 from db.users import get_user, create_user
 from db.feedback import get_feedback
-from utils.admin import get_admin_id
+from utils.send_message import notify_admin
 from aiogram.enums import ParseMode
 import settings.consts
 
@@ -16,9 +16,8 @@ async def cmd_start(message: Message, bot: Bot):
     if (get_user(message.from_user.id) is None):
         create_user(message.from_user.id, message.from_user.username,
                     message.from_user.first_name, message.from_user.last_name)
-        admin_id = get_admin_id()
-        await bot.send_message(
-              admin_id,
+        await notify_admin(
+              bot,
               f"Зарегистрировался новый пользователь:\n"
               f"{message.from_user.id}\n"
               f"@{message.from_user.username}\n"

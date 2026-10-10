@@ -1,7 +1,8 @@
 from aiogram import Bot
 from aiogram import Router
 from aiogram.types import Message
-from utils.admin import get_admin_id
+from utils.admin import is_admin, get_admin_ids
+from utils.send_message import notify_admin
 from utils.link_checker import check_if_text_is_feedback_link
 from db.feedback import get_feedback, update_or_create_feedback
 import settings.consts
@@ -12,11 +13,11 @@ router = Router()
 
 @router.message()
 async def handle_text_message(message: Message, bot: Bot):
-  admin_id = get_admin_id()
-  if message.from_user.id == admin_id:
+  if is_admin(message.from_user.id):
     await schedule_message_handler(message,bot)
   else:
-    await message.forward(admin_id)
+    for admin_id in get_admin_ids():
+      await message.forward(admin_id)
 
   if settings.consts.FEEDBACK_MODE:
     link = check_if_text_is_feedback_link(message)
@@ -25,7 +26,7 @@ async def handle_text_message(message: Message, bot: Bot):
       if feedback is None or feedback.link is None:
         is_update, feedback = update_or_create_feedback(message.from_user.id, link)
         await message.answer("Ваша ссылка проходит модерацию. Ожидайте ⏳")
-        await bot.send_message(admin_id, f"Новая ссылка на отзыв от @{message.from_user.username}: {link}")
+        await notify_admin(bot, f"Новая ссылка на отзыв от @{message.from_user.username}: {link}")
 
 
 async def schedule_message_handler(message: Message, bot: Bot):

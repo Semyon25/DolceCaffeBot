@@ -1,22 +1,34 @@
-import os
-from dotenv import load_dotenv
+from pathlib import Path
+from dotenv import dotenv_values
 
-load_dotenv()
+# Все секреты читаются только из файла, переменные окружения игнорируются
+SECRETS_FILE = Path(__file__).resolve().parent / ".env"
+
+if not SECRETS_FILE.exists():
+  raise FileNotFoundError(f"⛔ Файл с секретами '{SECRETS_FILE}' не найден")
+
+_secrets = dotenv_values(SECRETS_FILE)
 
 
-def require_env(var_name: str, raise_if_missing: bool = True) -> str | None:
-  value = os.getenv(var_name)
+def require_secret(var_name: str, raise_if_missing: bool = True) -> str | None:
+  value = _secrets.get(var_name)
   if value is None or value.strip() == "":
       if raise_if_missing:
           raise ValueError(
-              f"⛔ Переменная окружения '{var_name}' не установлена в .env"
+              f"⛔ Параметр '{var_name}' не задан в файле {SECRETS_FILE.name}"
           )
       return None
-  return value
+  return value.strip()
 
 
-db_name = require_env("db_name")
-admin_id = require_env("admin_id")
-bot_token = require_env("bot_token")
-manager_ids = require_env("manager_ids", raise_if_missing=False)
-schedule_file=require_env("schedule_file", raise_if_missing=False)
+def parse_ids(value: str | None) -> list[int]:
+  if value is None:
+    return []
+  return [int(x) for x in value.split(';') if x.strip()]
+
+
+db_name = require_secret("db_name")
+admin_ids = parse_ids(require_secret("admin_ids"))
+bot_token = require_secret("bot_token")
+manager_ids = parse_ids(require_secret("manager_ids", raise_if_missing=False))
+schedule_file = require_secret("schedule_file", raise_if_missing=False)

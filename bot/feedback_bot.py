@@ -4,7 +4,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from db.feedback import get_feedback, update_or_create_feedback
-from utils.admin import get_admin_id
+from utils.send_message import notify_admin
 from aiogram.enums import ParseMode
 
 router = Router()
@@ -31,19 +31,18 @@ async def link_sended(message: Message, state: FSMContext, bot: Bot):
             link = entity.extract_from(message.text)
 
     if link is not None:
-        admin_id = get_admin_id()
         is_update, feedback = update_or_create_feedback(message.from_user.id,
                                                      link)
         if is_update:
           await message.answer("Ваша ссылка обновлена и находится на модерации. Ожидайте ⏳")
-          await bot.send_message(
-              admin_id,
+          await notify_admin(
+              bot,
               f"Обновленная ссылка на отзыв от @{message.from_user.username} ({message.from_user.id}): {link}"
           )
         else:
           await message.answer("Ваша ссылка проходит модерацию. Ожидайте ⏳")
-          await bot.send_message(
-              admin_id,
+          await notify_admin(
+              bot,
               f"Новая ссылка на отзыв от @{message.from_user.username} ({message.from_user.id}): {link}"
           )
         await state.clear()

@@ -4,7 +4,8 @@ from aiogram import Router, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from db.users import get_user
-from utils.admin import get_admin_id, is_coffeemaker_or_admin
+from utils.admin import is_coffeemaker_or_admin
+from utils.send_message import notify_admin
 from utils.number_utils import to_float
 from utils.user_utils import get_user_name
 from aiogram.enums import ParseMode
@@ -59,7 +60,7 @@ async def entering_cash_balance_handle(message: Message, state: FSMContext, bot:
     if entered_amount is not None and entered_amount > 0:
       coffeemaker = get_user(message.from_user.id)
       today = date.today().strftime("%d.%m.%Y")
-      await bot.send_message(get_admin_id(),
+      await notify_admin(bot,
           f"#cash_balance\n💰{today}: Бариста {get_user_name(coffeemaker)} указал остаток по кассе: <b>{entered_amount}</b> ₽", parse_mode=ParseMode.HTML)
       await message.answer("✅ Остаток записан! ✅")
     else:
@@ -72,7 +73,7 @@ async def entering_cash_flow_handle(message: Message, state: FSMContext, bot: Bo
     if entered_amount is not None and entered_amount > 0:
       coffeemaker = get_user(message.from_user.id)
       today = date.today().strftime("%d.%m.%Y")
-      await bot.send_message(get_admin_id(),
+      await notify_admin(bot,
           f"#cash_flow\n📤{today}: Бариста {get_user_name(coffeemaker)} указал расход по кассе: <b>{entered_amount}</b> ₽", parse_mode=ParseMode.HTML)
       await message.answer("✅ Расход записан! ✅\nЕсли у вас есть чек, отправьте его в боте!")
     else:

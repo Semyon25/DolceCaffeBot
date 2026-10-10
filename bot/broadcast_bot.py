@@ -9,7 +9,7 @@ from aiogram.utils.media_group import MediaGroupBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, TelegramRetryAfter
-from utils.admin import get_admin_id
+from utils.admin import is_admin
 from db.users import User, get_user, get_users
 from utils.user_utils import get_user_name
 from utils.date_utils import get_next_week_range
@@ -28,8 +28,7 @@ class BroadcastState(StatesGroup):
 
 @router.message(Command('sendMessage'))
 async def handle_sendMessage_command(message: Message, state: FSMContext):
-  admin_id = int(get_admin_id())
-  if message.from_user.id == admin_id:
+  if is_admin(message.from_user.id):
     userId = message.text.split()[1]
     user = get_user(userId)
     if user is not None:
@@ -40,16 +39,14 @@ async def handle_sendMessage_command(message: Message, state: FSMContext):
 
 @router.message(Command('broadcast'))
 async def handle_broadcast_command(message: Message, state: FSMContext):
-  admin_id = int(get_admin_id())
-  if message.from_user.id == admin_id:
+  if is_admin(message.from_user.id):
     await message.answer('Отправьте текст и/или фотографии для рассылки:')
     await state.set_state(BroadcastState.waiting_broadcast_content)
 
 
 @router.message(BroadcastState.waiting_broadcast_content)
 async def process_broadcast_content(message: Message, state: FSMContext):
-  admin_id = int(get_admin_id())
-  if message.from_user.id == admin_id:
+  if is_admin(message.from_user.id):
     text = message.text
     photos = []
     if message.photo is not None:
