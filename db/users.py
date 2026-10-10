@@ -72,9 +72,9 @@ def get_user_by_name(name):
   return current_user
   
 
-def update_username(user_id, username):
+def update_user_profile(user_id, username, tg_name, tg_surname):
   """
-  Обновляет username пользователя, если он изменился.
+  Обновляет username, имя и фамилию из Telegram, если они изменились.
   Возвращает False, если пользователя нет в базе.
   """
   session = Session()
@@ -82,8 +82,10 @@ def update_username(user_id, username):
   if current_user is None:
     session.close()
     return False
-  if current_user.username != username:
+  if (current_user.username, current_user.tg_name, current_user.tg_surname) != (username, tg_name, tg_surname):
     current_user.username = username
+    current_user.tg_name = tg_name
+    current_user.tg_surname = tg_surname
     session.commit()
   session.close()
   return True
