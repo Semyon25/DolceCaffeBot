@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher
 from bot import start, help, admin_bot, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, subscription_bot
 import settings.consts
 from services.scheduler import SchedulerService
+from services.username_middleware import UsernameMiddleware
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
@@ -11,6 +12,8 @@ async def main():
 
   bot = Bot(token=bot_token)
   dp = Dispatcher()
+  # Обновление username пользователя в базе при любом взаимодействии с ботом
+  dp.update.outer_middleware(UsernameMiddleware())
   dp.include_router(start.router)
   dp.include_router(help.router)
   dp.include_router(admin_bot.router)

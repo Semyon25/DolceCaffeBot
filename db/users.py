@@ -72,6 +72,23 @@ def get_user_by_name(name):
   return current_user
   
 
+def update_username(user_id, username):
+  """
+  Обновляет username пользователя, если он изменился.
+  Возвращает False, если пользователя нет в базе.
+  """
+  session = Session()
+  current_user = session.query(User).filter(User.id == user_id).first()
+  if current_user is None:
+    session.close()
+    return False
+  if current_user.username != username:
+    current_user.username = username
+    session.commit()
+  session.close()
+  return True
+
+
 def set_name_for_user(user_id, name : str):
   session = Session()
   current_user = session.query(User).filter(User.id == user_id).first()
