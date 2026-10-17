@@ -37,10 +37,14 @@ def create_subscription(user_id, start_date: date, end_date: date, sub_name):
 def get_active_subscription(user_id, sub_name: str):
     """Возвращает активный абонемент, если он есть"""
     session = Session()
-    subs = session.query(Subscription).filter(
-        Subscription.user_id == user_id,
-        Subscription.sub_name == sub_name
-    ).all()
+    try:
+        subs = session.query(Subscription).filter(
+            Subscription.user_id == user_id,
+            Subscription.sub_name == sub_name
+        ).all()
+    finally:
+        # Закрываем сессию на всех путях, иначе соединения не возвращаются в пул
+        session.close()
 
     for sub in subs:
         start = datetime.strptime(sub.start_date, "%d.%m.%Y").date()
