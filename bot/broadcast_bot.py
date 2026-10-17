@@ -81,15 +81,22 @@ async def process_confirmation(query: CallbackQuery, state: FSMContext,
     user_id = data.get('user_id')
     await query.message.answer("Начинаю отправку...")
     errors = await send_message_to_users(bot, user_id, text, photos)
-    if errors:
+    if user_id is not None:
+      user = get_user(user_id)
+      if errors:
+        # Для заблокировавших бота в errors лежит только имя пользователя, для прочих ошибок — описание
+        details = errors[0] if errors[0] != get_user_name(user) else "возможно, пользователь заблокировал бота"
+        await query.message.answer(f"❌ Не удалось отправить сообщение пользователю {get_user_name(user)}: {details}")
+      else:
+        await query.message.answer(f"✅ Сообщение отправлено пользователю {get_user_name(user)}")
+    else:
+      users = get_users()
+      await query.message.answer(f"#broadcast\nУспешно: {len(users) - len(errors)}\nОшибки: {len(errors)}\nВсего: {len(users)}\n\n✅ Отправка завершена!")
       group_size = 90  # Размер группы для отправки сообщений
       for i in range(0, len(errors), group_size):
         error_group = errors[i:i + group_size]
         numbered_errors = [f"{i + j + 1}. {error}" for j, error in enumerate(error_group)]
         error_message = "\n".join(numbered_errors)
-        if i == 0:
-          users = get_users()
-          await query.message.answer(f"#broadcast\nУспешно: {len(users) - len(errors)}\nОшибки: {len(errors)}\nВсего: {len(users)}\n\n✅ Отправка завершена!")
         error_message = f'Пользователи, заблокировавшие бота:\n{error_message}'
         await query.message.answer(error_message)
     await query.answer()
