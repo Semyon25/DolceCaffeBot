@@ -34,8 +34,9 @@ bot_token = require_secret("bot_token")
 manager_ids = parse_ids(require_secret("manager_ids", raise_if_missing=False))
 schedule_file = require_secret("schedule_file", raise_if_missing=False)
 
-# Оплата размещения бота: дата следующей оплаты (ДД.ММ.ГГГГ)
+# Оплата размещения бота: ссылка на оплату и дата следующей оплаты (ДД.ММ.ГГГГ)
 PAYMENT_DATE_FORMAT = "%d.%m.%Y"
+payment_link = require_secret("payment_link", raise_if_missing=False)
 _payment_date = require_secret("payment_date", raise_if_missing=False)
 payment_date = datetime.strptime(_payment_date, PAYMENT_DATE_FORMAT).date() if _payment_date else None
 
