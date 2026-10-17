@@ -2,9 +2,11 @@ from datetime import date, timedelta
 from aiogram import Bot
 from aiogram import Router, F
 from aiogram.enums import ParseMode
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.filters import Command
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, Message
 import config
 from db.users import get_user
+from services.beget_payment import create_sbp_payment_link
 from utils.admin import is_admin
 from utils.date_utils import today
 from utils.send_message import notify_admin
@@ -23,11 +25,11 @@ def format_date(d: date) -> str:
   return d.strftime(config.PAYMENT_DATE_FORMAT)
 
 
-def get_payment_keyboard(due_date: date) -> InlineKeyboardMarkup:
+def get_payment_keyboard(due_date: date, payment_link: str | None) -> InlineKeyboardMarkup:
   # В кнопку зашита дата оплаты, чтобы повторное нажатие не продлило оплату дважды
   buttons = []
-  if config.payment_link:
-    buttons.append([InlineKeyboardButton(text="💳 Оплатить", url=config.payment_link)])
+  if payment_link:
+    buttons.append([InlineKeyboardButton(text="💳 Оплатить", url=payment_link)])
   buttons.append([InlineKeyboardButton(text="✅ Я оплатил",
                                        callback_data=f"{PAID_CALLBACK_PREFIX}{due_date.isoformat()}")])
   return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -51,13 +53,28 @@ async def send_payment_reminder(bot: Bot):
   else:
     when = f"<b>Через {days_left} дня, {format_date(due_date)}</b>,"
 
+  payment_link = await create_sbp_payment_link()
   text = f"#payment\n💳 {when} необходимо оплатить размещение бота.\n\n"
-  if config.payment_link:
-    text += f"Оплатить можно по <a href=\"{config.payment_link}\">ссылке СБП</a>.\n"
+  if payment_link:
+    text += f"Оплатить можно по <a href=\"{payment_link}\">ссылке СБП</a>:\n{payment_link}\n\n"
+  else:
+    text += "⚠️ Не удалось получить ссылку на оплату, оплатите в личном кабинете Beget.\n\n"
   text += "После оплаты нажмите кнопку <b>«Я оплатил»</b> ✅"
 
   await notify_admin(bot, text, parse_mode=ParseMode.HTML,
-                     reply_markup=get_payment_keyboard(due_date))
+                     reply_markup=get_payment_keyboard(due_date, payment_link))
+
+
+@router.message(Command('paymentLink'))
+async def handle_payment_link_command(message: Message):
+  if not is_admin(message.from_user.id):
+    return
+  await message.answer("Получаю ссылку на оплату в личном кабинете Beget...")
+  payment_link = await create_sbp_payment_link()
+  if payment_link:
+    await message.answer(f"💳 Ссылка СБП на оплату размещения бота ({config.payment_amount} ₽):\n{payment_link}")
+  else:
+    await message.answer("❌ Не удалось получить ссылку. Проверьте beget_login, beget_password и payment_amount в .env и логи бота.")
 
 
 @router.callback_query(F.data.startswith(PAID_CALLBACK_PREFIX))

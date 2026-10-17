@@ -34,9 +34,13 @@ bot_token = require_secret("bot_token")
 manager_ids = parse_ids(require_secret("manager_ids", raise_if_missing=False))
 schedule_file = require_secret("schedule_file", raise_if_missing=False)
 
-# Оплата размещения бота: ссылка на оплату и дата следующей оплаты (ДД.ММ.ГГГГ)
+# Оплата размещения бота: дата следующей оплаты (ДД.ММ.ГГГГ)
 PAYMENT_DATE_FORMAT = "%d.%m.%Y"
-payment_link = require_secret("payment_link", raise_if_missing=False)
+# Вход в личный кабинет Beget и сумма платежа — для получения новой ссылки СБП при каждом напоминании
+beget_login = require_secret("beget_login", raise_if_missing=False)
+beget_password = require_secret("beget_password", raise_if_missing=False)
+_payment_amount = require_secret("payment_amount", raise_if_missing=False)
+payment_amount = int(_payment_amount) if _payment_amount else None
 _payment_date = require_secret("payment_date", raise_if_missing=False)
 payment_date = datetime.strptime(_payment_date, PAYMENT_DATE_FORMAT).date() if _payment_date else None
 
