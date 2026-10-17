@@ -27,7 +27,7 @@ def set_count(user_id, count):
   session = Session()
   current_purchase = session.query(Purchase).filter(Purchase.user_id == user_id).first()
   if current_purchase is None:
-    current_purchase = Purchase(user_id=user_id, count=0)
+    current_purchase = Purchase(user_id=user_id, count=count)
     session.add(current_purchase)
   else:
     current_purchase.count = count

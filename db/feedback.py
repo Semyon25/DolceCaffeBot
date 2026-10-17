@@ -25,6 +25,13 @@ def get_feedback(user_id):
   session.close()
   return feedback
 
+# Функция для получения отзывов, ожидающих модерации (ссылка есть, а кода ещё нет)
+def get_feedbacks_waiting_approval():
+  session = Session()
+  feedbacks = session.query(Feedback).filter(Feedback.link.isnot(None), Feedback.code.is_(None)).all()
+  session.close()
+  return feedbacks
+
 # Функция для обновления или создания записи отзыва
 def update_or_create_feedback(user_id, link):
   session = Session()
@@ -68,7 +75,11 @@ def confirm_code_usage(code):
 
 def check_if_code_unique(code):
   session = Session()
-  feedback = session.query(Feedback).filter(Feedback.code == code).first()
+  try:
+    feedback = session.query(Feedback).filter(Feedback.code == code).first()
+  finally:
+    # Закрываем сессию на всех путях, иначе соединения не возвращаются в пул
+    session.close()
   if feedback:
     return False
   return True

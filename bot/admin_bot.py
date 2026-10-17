@@ -27,14 +27,49 @@ async def send_message_safe(bot: Bot, user_id: int, text: str):
     pass
 
 
+async def send_admins_list(message: Message):
+  answer = "#admins\nАдминистраторы:\n"
+  for number, admin_id in enumerate(get_admin_ids(), start=1):
+    name = get_user_name(get_user(admin_id)) or "не зарегистрирован в боте"
+    answer += f"{number}. {name} ({admin_id})\n"
+  await message.answer(answer)
+
+
+async def appoint_admin(message: Message, bot: Bot, admin_id: int, user_id: int):
+  """
+  Назначает пользователя администратором. admin_id — кто назначает.
+  """
+  user = get_user(user_id)
+  if user is None:
+    await message.answer("❌ Такого пользователя не существует! Пользователь должен сначала запустить бота")
+    return
+  if not add_admin(user_id):
+    await message.answer("🟡 Данный пользователь уже администратор!")
+    return
+  await notify_admin(bot, f"#admins\n✅ {get_user_name(get_user(admin_id))} назначил администратором {get_user_name(user)} ({user_id})")
+  await send_message_safe(bot, user_id, "Вам назначена роль администратора! Список команд: /help, админ-панель: /admin")
+
+
+async def dismiss_admin(message: Message, bot: Bot, admin_id: int, user_id: int):
+  """
+  Снимает роль администратора с пользователя. admin_id — кто снимает.
+  """
+  # Запрещаем удалять себя, чтобы в боте всегда оставался хотя бы один администратор
+  if user_id == admin_id:
+    await message.answer("⚠️ Нельзя снять роль администратора с самого себя!")
+    return
+  if not remove_admin(user_id):
+    await message.answer("❌ Данный пользователь не администратор!")
+    return
+  user = get_user(user_id)
+  await notify_admin(bot, f"#admins\n🗑 {get_user_name(get_user(admin_id))} снял роль администратора с {get_user_name(user) or user_id} ({user_id})")
+  await send_message_safe(bot, user_id, "С вас снята роль администратора")
+
+
 @router.message(Command('admins'))
 async def get_all_admins(message: Message):
   if is_admin(message.from_user.id):
-    answer = "#admins\nАдминистраторы:\n"
-    for number, admin_id in enumerate(get_admin_ids(), start=1):
-      name = get_user_name(get_user(admin_id)) or "не зарегистрирован в боте"
-      answer += f"{number}. {name} ({admin_id})\n"
-    await message.answer(answer)
+    await send_admins_list(message)
 
 
 @router.message(Command('addAdmin'))
@@ -44,15 +79,7 @@ async def add_admin_handler(message: Message, bot: Bot):
     if user_id is None:
       await message.answer("⚠️ Укажи ID пользователя после команды: /addAdmin {userId}")
       return
-    user = get_user(user_id)
-    if user is None:
-      await message.answer("❌ Такого пользователя не существует! Пользователь должен сначала запустить бота")
-      return
-    if not add_admin(user_id):
-      await message.answer("🟡 Данный пользователь уже администратор!")
-      return
-    await notify_admin(bot, f"#admins\n✅ {get_user_name(get_user(message.from_user.id))} назначил администратором {get_user_name(user)} ({user_id})")
-    await send_message_safe(bot, user_id, "Вам назначена роль администратора! Список команд: /help")
+    await appoint_admin(message, bot, message.from_user.id, user_id)
 
 
 @router.message(Command('removeAdmin'))
@@ -62,13 +89,4 @@ async def remove_admin_handler(message: Message, bot: Bot):
     if user_id is None:
       await message.answer("⚠️ Укажи ID пользователя после команды: /removeAdmin {userId}")
       return
-    # Запрещаем удалять себя, чтобы в боте всегда оставался хотя бы один администратор
-    if user_id == message.from_user.id:
-      await message.answer("⚠️ Нельзя снять роль администратора с самого себя!")
-      return
-    if not remove_admin(user_id):
-      await message.answer("❌ Данный пользователь не администратор!")
-      return
-    user = get_user(user_id)
-    await notify_admin(bot, f"#admins\n🗑 {get_user_name(get_user(message.from_user.id))} снял роль администратора с {get_user_name(user) or user_id} ({user_id})")
-    await send_message_safe(bot, user_id, "С вас снята роль администратора")
+    await dismiss_admin(message, bot, message.from_user.id, user_id)

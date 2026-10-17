@@ -1,6 +1,6 @@
 from config import bot_token
 from aiogram import Bot, Dispatcher
-from bot import start, help, admin_bot, payment_bot, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, subscription_bot
+from bot import start, help, admin_panel_bot, admin_bot, payment_bot, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, subscription_bot
 import settings.consts
 from services.scheduler import SchedulerService
 from services.username_middleware import UsernameMiddleware
@@ -19,6 +19,8 @@ async def main():
   dp.update.outer_middleware(UsernameMiddleware())
   dp.include_router(start.router)
   dp.include_router(help.router)
+  # Админ-панель подключается раньше роутеров с состояниями, чтобы кнопка «Админ-панель» работала в любом состоянии
+  dp.include_router(admin_panel_bot.router)
   dp.include_router(admin_bot.router)
   dp.include_router(payment_bot.router)
   dp.include_router(coffeemaker_bot.router)

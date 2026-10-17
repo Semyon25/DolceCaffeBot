@@ -3,7 +3,7 @@ from typing import List, Optional
 from aiogram.enums import ParseMode
 from aiogram import Bot
 from aiogram.fsm.state import StatesGroup, State
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.media_group import MediaGroupBuilder
 from aiogram.fsm.context import FSMContext
@@ -26,22 +26,50 @@ class BroadcastState(StatesGroup):
   waiting_confirmation = State()
 
 
+async def start_broadcast(message: Message, state: FSMContext, user_id=None):
+  """
+  Запрашивает текст и/или фотографии для рассылки всем пользователям или одному пользователю (user_id).
+  """
+  # Сбрасываем данные прошлой рассылки, чтобы рассылка всем не ушла пользователю из незавершённой /sendMessage
+  await state.clear()
+  if user_id is not None:
+    user = get_user(user_id)
+    if user is None:
+      await message.answer("❌ Такого пользователя не существует!")
+      return
+    await state.update_data(user_id=int(user.id))
+    text = f'Отправьте текст и/или фотографии для пользователя {get_user_name(user)}:'
+  else:
+    text = 'Отправьте текст и/или фотографии для рассылки:'
+  keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+      InlineKeyboardButton(text="Отменить", callback_data="cancel_broadcast")
+  ]])
+  await message.answer(text, reply_markup=keyboard)
+  await state.set_state(BroadcastState.waiting_broadcast_content)
+
+
 @router.message(Command('sendMessage'))
 async def handle_sendMessage_command(message: Message, state: FSMContext):
   if is_admin(message.from_user.id):
-    userId = message.text.split()[1]
-    user = get_user(userId)
-    if user is not None:
-      await state.update_data(user_id=user.id)
-      await message.answer('Отправьте текст и/или фотографии для рассылки:')
-      await state.set_state(BroadcastState.waiting_broadcast_content)
+    parts = (message.text or "").split()
+    if len(parts) < 2:
+      await message.answer("⚠️ Укажи ID пользователя после команды: /sendMessage {userId}")
+      return
+    await start_broadcast(message, state, parts[1])
 
 
 @router.message(Command('broadcast'))
 async def handle_broadcast_command(message: Message, state: FSMContext):
   if is_admin(message.from_user.id):
-    await message.answer('Отправьте текст и/или фотографии для рассылки:')
-    await state.set_state(BroadcastState.waiting_broadcast_content)
+    await start_broadcast(message, state)
+
+
+@router.callback_query(BroadcastState.waiting_broadcast_content, F.data == "cancel_broadcast")
+async def cancel_broadcast_content(query: CallbackQuery, state: FSMContext):
+  await state.clear()
+  await query.message.edit_reply_markup(reply_markup=None)  # Убираем кнопки
+  await query.message.answer("Отправка отменена.")
+  await query.answer()
 
 
 @router.message(BroadcastState.waiting_broadcast_content)

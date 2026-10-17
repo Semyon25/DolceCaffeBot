@@ -5,6 +5,9 @@ from db.feedback import get_feedback
 from utils.subcription_free_beverage import can_buy_subscription_today, get_active_subscription
 import settings.consts
 
+# Текст кнопки главного меню, открывающей админ-панель
+ADMIN_PANEL_BUTTON = "Админ-панель"
+
 def get_main_menu(user_id) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
 
@@ -32,6 +35,10 @@ def get_main_menu(user_id) -> ReplyKeyboardMarkup:
             kb.button(text="Акция 6+1")
         if can_buy_subscription_today() or get_active_subscription(user_id):
             kb.button(text="Абонемент")
+
+    # только админ
+    if is_admin(user_id):
+        kb.button(text=ADMIN_PANEL_BUTTON)
 
     kb.adjust(2) # 2 кнопки в строке
     

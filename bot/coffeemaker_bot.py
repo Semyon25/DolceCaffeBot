@@ -180,168 +180,254 @@ async def handle_subscription(message: Message, bot: Bot):
     await bot.send_message(user_id, "Код использован! Бариста приготовит вам бесплатный напиток!🥳☕")
     await notify_admin(bot, f"Пользователь {get_user_name(get_user(user_id))} предъявил код для бесплатного напитка по абонементу")
 
+def get_command_args(message: Message, maxsplit: int = -1) -> list[str]:
+  """Возвращает параметры команды без самой команды"""
+  return (message.text or "").split(maxsplit=maxsplit)[1:]
+
+
+async def approve_feedback_for_user(message: Message, bot: Bot, user_id):
+  """Подтверждает отзыв пользователя и отправляет ему код на бесплатный напиток"""
+  user = get_user(user_id)
+  feedback = get_feedback(user.id) if user is not None else None
+  if feedback:
+    code = generate_code_6()
+    while not check_if_code_unique_from_feedback(code):
+      code = generate_code_6()
+    update_feedback_code(user.id, code)
+    await message.answer(f"Код для пользователя @{user.username}: {code}")
+    await bot.send_message(
+        user.id,
+        f"Поздравляем! Ваш отзыв прошел модерацию! 🎉\nВаш код: {code}.\nСообщите этот код бариста и получите бесплатный напиток!",
+        reply_markup=get_main_menu(user.id))
+  else:
+    await message.answer("Пользователь не найден.")
+
+
+async def add_coffeemaker(message: Message, bot: Bot, user_id, name: str | None = None):
+  """Назначает пользователя бариста и, если указано, задаёт ему имя"""
+  user = get_user(user_id)
+  if user is None:
+    await message.answer("Такого пользователя не существует!")
+    return
+  if user.is_coffeemaker == 0:
+    set_user_as_coffeemaker(user.id, 1)
+    await message.answer("Добавлен новый бариста!")
+    await bot.send_message(user.id,
+                           "Вам назначена роль бариста!",
+                           reply_markup=get_main_menu(user.id))
+  else:
+    await message.answer("Данный пользователь уже бариста!")
+  if name:
+    set_name_for_user(user.id, name)
+    await message.answer("Задано имя для бариста!")
+
+
+async def remove_coffeemaker_by_id(message: Message, user_id):
+  """Снимает с пользователя роль бариста"""
+  user = get_user(user_id)
+  if user is not None:
+    if user.is_coffeemaker == 1:
+      set_user_as_coffeemaker(user.id, 0)
+      await message.answer(
+          f"Пользователь @{user.username} больше не бариста!")
+    else:
+      await message.answer("Данный пользователь не бариста!")
+  else:
+    await message.answer("Такого пользователя не существует!")
+
+
+async def send_coffeemakers_list(message: Message):
+  """Отправляет список бариста"""
+  users = get_users()
+  answer = f"#allUsers\nВсего в боте {len(users)} пользователей.\nБариста:\n"
+  number = 1
+  # Отбираем только бариста
+  coffeemakers = [user for user in users if user.is_coffeemaker]
+  for user in coffeemakers:
+    answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} ({int(user.id)})\n"
+    number += 1
+  await message.answer(answer)
+
+
+async def send_all_users_in_details(message: Message):
+  """Отправляет список всех пользователей с отзывами и накопленными напитками"""
+  users = get_users()
+  answer = f"#allUsers\nВсего в боте {len(users)} пользователей:\n"
+  number = 1
+  # Сначала выводим бариста, а затем всех остальных
+  sorted_users = sorted(users, key=lambda user: -user.is_coffeemaker)
+  for user in sorted_users:
+    feedback = get_feedback(user.id)
+    beverage_count = get_count(user.id)
+    answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} ({int(user.id)}){get_feedback_emoji(feedback)} {get_beverage_count_emoji(beverage_count)}\n"
+    if number % 90 == 0:
+      await message.answer(answer)
+      await asyncio.sleep(1)
+      answer = ""
+    number += 1
+  if answer != "":
+    await message.answer(answer)
+
+
+async def add_feedback_link(message: Message, user_id, link: str):
+  """Добавляет пользователю ссылку на отзыв"""
+  user = get_user(user_id)
+  if user is None:
+    await message.answer("Такого пользователя не существует!")
+    return
+  is_update, feedback = update_or_create_feedback(user.id, link)
+  if feedback is not None:
+    await message.answer("Ссылка пользователю добавлена!")
+
+
+async def correct_purchase_count_for_user(message: Message, user_id, count: str) -> bool:
+  """
+  Изменяет количество накопленных напитков по акции 6+1. Возвращает False, если ввод некорректный.
+  """
+  user = get_user(user_id)
+  if user is None:
+    await message.answer("Такого пользователя не существует!")
+    return False
+  if not count.isdigit() or int(count) > 6:
+    await message.answer("⚠️ Количество напитков должно быть числом от 0 до 6!")
+    return False
+  set_count(user.id, int(count))
+  updated_count = get_count(user.id)
+  await message.answer(
+      f"У пользователя накоплено {updated_count} напитков")
+  return True
+
+
+async def add_certificate_code(message: Message, admin_id: int, code: str) -> bool:
+  """
+  Добавляет в базу 8-значный код сертификата. Возвращает False, если код не добавлен.
+  """
+  if len(code) != 8 or not code.isdigit():
+    await message.answer("Введите 8-значный код!")
+    return False
+  if check_if_code_unique(code):
+    set_code(admin_id, code)  # записываю код на администратора
+    await message.answer("Код добавлен в базу!")
+    return True
+  await message.answer("Введенный код не уникальный!")
+  return False
+
+
+async def send_plan_next_week(message: Message, bot: Bot):
+  """Отправляет бариста сообщение о планировании следующей недели и присылает отчёт"""
+  await message.answer("Начинаю отправку бариста сообщения о планировании...")
+  sent, failed = await plan_next_week(bot)
+  report = f"✅ Сообщение о планировании следующей недели отправлено бариста: {len(sent)}"
+  if sent:
+    report += "\n" + "\n".join(f"- {name}" for name in sent)
+  if failed:
+    report += f"\n\n❌ Не удалось отправить: {len(failed)}\n" + "\n".join(f"- {error}" for error in failed)
+  await message.answer(report)
+
+
+async def add_subscription_for_user(message: Message, bot: Bot, user_id):
+  """Добавляет пользователю абонемент на ежедневный бесплатный напиток"""
+  user = get_user(user_id)
+  if user is None:
+    await message.answer("❌ Пользователь не найден!")
+    return
+  sub = get_active_subscription(user.id)
+  if sub is not None:
+    await message.answer("🟡 У пользователя уже есть активный абонемент!")
+    return
+  if create_subscription_until_end_2025(user.id):
+    await message.answer(f"✅ Абонемент успешно добавлен пользователю {get_user_name(user)}!")
+    await bot.send_message(user.id, "🥳 Вам добавлен абонемент на ежедневный бесплатный напиток до конца 2025 года! ☕✨")
+  else:
+    await message.answer("⚠️ Не удалось добавить абонемент!")
+
+
 # Обработка команды /approve
 @router.message(Command('approve'))
 async def approve_feedback(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    userId = message.text.split()[1]
-    user = get_user(userId)
-    feedback = get_feedback(user.id)
-    if feedback:
-      code = generate_code_6()
-      while not check_if_code_unique_from_feedback(code):
-        code = generate_code_6()
-      update_feedback_code(user.id, code)
-      await message.answer(f"Код для пользователя @{user.username}: {code}")
-      await bot.send_message(
-          user.id,
-          f"Поздравляем! Ваш отзыв прошел модерацию! 🎉\nВаш код: {code}.\nСообщите этот код бариста и получите бесплатный напиток!",
-          reply_markup=get_main_menu(user.id))
-    else:
-      await message.answer("Пользователь не найден.")
+    args = get_command_args(message)
+    if not args:
+      await message.answer("⚠️ Укажи ID пользователя после команды: /approve {userId}")
+      return
+    await approve_feedback_for_user(message, bot, args[0])
 
 
 @router.message(Command('addNewCoffeemaker'))
 async def add_new_coffeemaker(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    parts = (message.text or "").split()
-    user = get_user(parts[1]) if len(parts) > 1 else None
-    if user is not None:
-      if user.is_coffeemaker == 0:
-        set_user_as_coffeemaker(user.id, 1)
-        await message.answer("Добавлен новый бариста!")
-        await bot.send_message(user.id,
-                               "Вам назначена роль бариста!",
-                               reply_markup=get_main_menu(user.id))
-      else:
-        await message.answer("Данный пользователь уже бариста!")
-
-      name = parts[2] if len(parts) > 2 else None
-      if name is not None:
-        set_name_for_user(user.id, name)
-        await message.answer("Задано имя для бариста!")
-    else:
-      await message.answer("Такого пользователя не существует!")
+    # Имя бариста может состоять из нескольких слов
+    args = get_command_args(message, maxsplit=2)
+    if not args:
+      await message.answer("⚠️ Укажи ID пользователя после команды: /addNewCoffeemaker {userId} [{name}]")
+      return
+    name = args[1] if len(args) > 1 else None
+    await add_coffeemaker(message, bot, args[0], name)
 
 
 @router.message(Command('removeCoffeemaker'))
 async def remove_coffeemaker(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    userId = message.text.split()[1]
-    user = get_user(userId)
-    if user is not None:
-      if user.is_coffeemaker == 1:
-        set_user_as_coffeemaker(user.id, 0)
-        await message.answer(
-            f"Пользователь @{user.username} больше не бариста!")
-      else:
-        await message.answer("Данный пользователь не бариста!")
-    else:
-      await message.answer("Такого пользователя не существует!")
+    args = get_command_args(message)
+    if not args:
+      await message.answer("⚠️ Укажи ID пользователя после команды: /removeCoffeemaker {userId}")
+      return
+    await remove_coffeemaker_by_id(message, args[0])
 
 
 @router.message(Command('allUsers'))
 async def get_all_users(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    users = get_users()
-    answer = f"#allUsers\nВсего в боте {len(users)} пользователей.\nБариста:\n"
-    number = 1
-    # Отбираем только бариста
-    coffeemakers = [user for user in users if user.is_coffeemaker]
-    for user in coffeemakers:
-      answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} ({int(user.id)})\n"
-      number += 1
-    await message.answer(answer)
+    await send_coffeemakers_list(message)
+
 
 @router.message(Command('allUsersInDetails'))
 async def get_all_users_in_details(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    users = get_users()
-    answer = f"#allUsers\nВсего в боте {len(users)} пользователей:\n"
-    number = 1
-    # Сначала выводим бариста, а затем всех остальных
-    sorted_users = sorted(users, key=lambda user: -user.is_coffeemaker)
-    for user in sorted_users:
-      feedback = get_feedback(user.id)
-      beverage_count = get_count(user.id)
-      answer += f"{number}. {get_coffeemaker_emoji(user)} {get_user_name(user)} ({int(user.id)}){get_feedback_emoji(feedback)} {get_beverage_count_emoji(beverage_count)}\n"
-      if number % 90 == 0:
-        await message.answer(answer)
-        await asyncio.sleep(1)
-        answer = ""
-      number += 1
-    if answer != "":
-      await message.answer(answer)
+    await send_all_users_in_details(message)
+
 
 @router.message(Command('addLink'))
 async def add_link(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    userId = message.text.split()[1]
-    user = get_user(userId)
-    if user is not None:
-      link = message.text.split()[2]
-      is_update, feedback = update_or_create_feedback(user.id, link)
-      if feedback is not None:
-        await message.answer("Ссылка пользователю добавлена!")
+    args = get_command_args(message)
+    if len(args) < 2:
+      await message.answer("⚠️ Укажи ID пользователя и ссылку после команды: /addLink {userId} {link}")
+      return
+    await add_feedback_link(message, args[0], args[1])
 
 
 @router.message(Command('correctPurchaseCount'))
 async def correct_purchase_count(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    userId = message.text.split()[1]
-    user = get_user(userId)
-    if user is not None:
-      count = message.text.split()[2]
-      set_count(userId, count)
-      updated_count = get_count(userId)
-      await message.answer(
-          f"У пользователя накоплено {updated_count} напитков")
+    args = get_command_args(message)
+    if len(args) < 2:
+      await message.answer("⚠️ Укажи ID пользователя и количество напитков после команды: /correctPurchaseCount {userId} {count}")
+      return
+    await correct_purchase_count_for_user(message, args[0], args[1])
 
 
 @router.message(Command('addNewCode'))
 async def add_new_code(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    code = message.text.split()[1]
-    if len(code) != 8:
-      await message.answer("Введите 8-значный код!")
+    args = get_command_args(message)
+    if not args:
+      await message.answer("⚠️ Укажи код после команды: /addNewCode {code}")
       return
-    if check_if_code_unique(code):
-      set_code(message.from_user.id, code)  # записываю код на себя
-      await message.answer("Код добавлен в базу!")
-    else:
-      await message.answer("Введенный код не уникальный!")
+    await add_certificate_code(message, message.from_user.id, args[0])
+
 
 @router.message(Command('planNextWeek'))
 async def planNextWeek_handler(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    await message.answer("Начинаю отправку бариста сообщения о планировании...")
-    sent, failed = await plan_next_week(bot)
-    report = f"✅ Сообщение о планировании следующей недели отправлено бариста: {len(sent)}"
-    if sent:
-      report += "\n" + "\n".join(f"- {name}" for name in sent)
-    if failed:
-      report += f"\n\n❌ Не удалось отправить: {len(failed)}\n" + "\n".join(f"- {error}" for error in failed)
-    await message.answer(report)
+    await send_plan_next_week(message, bot)
+
 
 @router.message(Command('add_subscription'))
 async def add_subscription_handler(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    parts = message.text.split()
-    if len(parts) < 2:
-        await message.answer("⚠️ Укажи ID пользователя после команды")
-        return
-    user_id = parts[1]
-    user = get_user(user_id)
-    if user is None:
-      await message.answer("❌ Пользователь не найден!")
+    args = get_command_args(message)
+    if not args:
+      await message.answer("⚠️ Укажи ID пользователя после команды")
       return
-    sub = get_active_subscription(user_id)
-    if sub is not None:
-      await message.answer("🟡 У пользователя уже есть активный абонемент!")
-      return
-    if create_subscription_until_end_2025(user_id):
-      await message.answer(f"✅ Абонемент успешно добавлен пользователю {get_user_name(user)}!")
-      await bot.send_message(user_id, "🥳 Вам добавлен абонемент на ежедневный бесплатный напиток до конца 2025 года! ☕✨")
-    else:
-      await message.answer("⚠️ Не удалось добавить абонемент!")
-    
+    await add_subscription_for_user(message, bot, args[0])

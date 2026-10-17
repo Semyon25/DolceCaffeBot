@@ -69,6 +69,11 @@ async def send_payment_reminder(bot: Bot):
 async def handle_payment_link_command(message: Message):
   if not is_admin(message.from_user.id):
     return
+  await send_payment_link(message)
+
+
+async def send_payment_link(message: Message):
+  """Получает в личном кабинете Beget свежую ссылку СБП и отправляет её администратору"""
   await message.answer("Получаю ссылку на оплату в личном кабинете Beget...")
   payment_link = await create_sbp_payment_link()
   if payment_link:
