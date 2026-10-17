@@ -18,12 +18,20 @@ DELAY_BETWEEN_MESSAGES = 1
 
 
 async def plan_next_week(bot: Bot):
+  """Рассылает бариста предложение выбрать смены. Возвращает имена получивших и не получивших сообщение."""
   users = get_users()
   start, end = get_next_week_range()
+  sent: list[str] = []
+  failed: list[str] = []
   for user in users:
     if user.is_coffeemaker == 1:
-      await bot.send_message(user.id, f"👋 Добрый день!\n\n📅 Давайте запланируем ваш график на следующую неделю.\n✍️ Выберите, пожалуйста, смены, в которые вы сможете выйти на следующей неделе с <b>{start}</b> по <b>{end}</b>", parse_mode=ParseMode.HTML, reply_markup=get_shifts_keyboard())
+      try:
+        await bot.send_message(user.id, f"👋 Добрый день!\n\n📅 Давайте запланируем ваш график на следующую неделю.\n✍️ Выберите, пожалуйста, смены, в которые вы сможете выйти на следующей неделе с <b>{start}</b> по <b>{end}</b>", parse_mode=ParseMode.HTML, reply_markup=get_shifts_keyboard())
+        sent.append(get_user_name(user))
+      except Exception as e:
+        failed.append(f"{get_user_name(user)}: {e}")
       await asyncio.sleep(DELAY_BETWEEN_MESSAGES)
+  return sent, failed
 
 @router.callback_query(F.data.startswith("shift_"))
 async def handle_shift_callback(callback: CallbackQuery, state: FSMContext, bot: Bot):

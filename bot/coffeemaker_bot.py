@@ -314,7 +314,14 @@ async def add_new_code(message: Message, bot: Bot):
 @router.message(Command('planNextWeek'))
 async def planNextWeek_handler(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
-    await plan_next_week(bot)
+    await message.answer("Начинаю отправку бариста сообщения о планировании...")
+    sent, failed = await plan_next_week(bot)
+    report = f"✅ Сообщение о планировании следующей недели отправлено бариста: {len(sent)}"
+    if sent:
+      report += "\n" + "\n".join(f"- {name}" for name in sent)
+    if failed:
+      report += f"\n\n❌ Не удалось отправить: {len(failed)}\n" + "\n".join(f"- {error}" for error in failed)
+    await message.answer(report)
 
 @router.message(Command('add_subscription'))
 async def add_subscription_handler(message: Message, bot: Bot):
