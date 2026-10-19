@@ -78,22 +78,22 @@ def get_names(user_ids) -> dict[int, str]:
   return {user_id: html.escape(get_short_name(get_user(user_id), user_id)) for user_id in set(user_ids)}
 
 
-def get_schedule_lines(week_start: date, schedule: dict[str, int], viewer_id: int | None = None) -> str:
-  """Расписание недели по дням (HTML): «Пн 26.10: 10-16 Аня, 16-22 Боря». Смены viewer_id выделены как «вы»."""
+def get_schedule_lines(schedule: dict[str, int], viewer_id: int | None = None) -> str:
+  """Расписание недели по дням (HTML): «Пн: 10-16 Аня, 16-22 Боря». Имя viewer_id выделено жирным."""
   names = get_names(schedule.values())
   lines = []
-  for i, day in enumerate(DAYS):
+  for day in DAYS:
     parts = []
     for shift_time in TIMES:
       user_id = schedule.get(f"{day}_{shift_time}")
       if user_id is None:
         name = "—"
       elif user_id == viewer_id:
-        name = "<b>вы</b>"
+        name = f"<b>{names[user_id]}</b>"
       else:
         name = names[user_id]
       parts.append(f"{TIME_ORDER[shift_time][1]} {name}")
-    lines.append(f"{DAY_ORDER[day][1]} {week_start + timedelta(days=i):%d.%m}: " + ", ".join(parts))
+    lines.append(f"{DAY_ORDER[day][1]}: " + ", ".join(parts))
   return "\n".join(lines)
 
 
@@ -108,7 +108,7 @@ def format_user_shifts(shifts: list[str]) -> str:
 def get_schedule_text(week_start: date, schedule: dict[str, int], viewer_id: int, title: str) -> str:
   """Расписание недели для бариста с его сменами"""
   start, end = get_week_range(week_start)
-  text = f"{title} <b>{start} – {end}</b>\n\n{get_schedule_lines(week_start, schedule, viewer_id)}\n\n"
+  text = f"{title} <b>{start} – {end}</b>\n\n{get_schedule_lines(schedule, viewer_id)}\n\n"
   shifts = get_user_shifts(schedule, viewer_id)
   text += f"✅ Ваши смены: <b>{format_user_shifts(shifts)}</b>" if shifts else "🙅 На этой неделе у вас нет смен"
   return text

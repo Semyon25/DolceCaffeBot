@@ -341,7 +341,7 @@ async def show_publish_confirm(query: CallbackQuery, plan: WeekPlan):
   if plan.published is None:
     text = (f"📢 <b>Опубликовать расписание на неделю {start} – {end}?</b>\n\n"
             f"Все бариста получат расписание, выбор смен на эту неделю закроется.\n\n"
-            f"{get_schedule_lines(plan.week_start, schedule)}")
+            f"{get_schedule_lines(schedule)}")
   else:
     names = get_plan_names(plan)
     names.update({user_id: get_short_name(get_user(user_id), user_id) for user_id in get_published_schedule(plan.week_start).values()})
@@ -380,7 +380,7 @@ async def notify_about_schedule(message: Message, bot: Bot, week_start: date, sc
       text = (f"✏️ <b>Расписание на неделю {start} – {end} изменилось</b>\n\n"
               f"Ваши смены: <b>{format_user_shifts(get_user_shifts(schedule, user_id))}</b>\n"
               f"Было: {format_user_shifts(get_user_shifts(previous, user_id))}\n\n"
-              f"{get_schedule_lines(week_start, schedule, user_id)}")
+              f"{get_schedule_lines(schedule, user_id)}")
     try:
       await bot.send_message(user_id, text, parse_mode=ParseMode.HTML)
       sent.append(get_user_name(user) or str(user_id))
@@ -391,11 +391,11 @@ async def notify_about_schedule(message: Message, bot: Bot, week_start: date, sc
   hashtag_start, hashtag_end = get_week_range(week_start, "")
   hashtags = f"#schedule #week_{hashtag_start}_{hashtag_end}"
   if previous is None:
-    admin_text = f"{hashtags}\n📅 <b>Опубликовано расписание на неделю {start} – {end}</b>\n\n{get_schedule_lines(week_start, schedule)}"
+    admin_text = f"{hashtags}\n📅 <b>Опубликовано расписание на неделю {start} – {end}</b>\n\n{get_schedule_lines(schedule)}"
   else:
     names = {user_id: get_short_name(get_user(user_id), user_id) for user_id in set(schedule.values()) | set(previous.values())}
     admin_text = (f"{hashtags}\n✏️ <b>Изменено расписание на неделю {start} – {end}</b>\n\n"
-                  f"{get_changes_text(previous, schedule, week_start, names)}\n\n{get_schedule_lines(week_start, schedule)}")
+                  f"{get_changes_text(previous, schedule, week_start, names)}\n\n{get_schedule_lines(schedule)}")
   await notify_admin_and_managers(bot, admin_text, parse_mode=ParseMode.HTML)
 
   report = f"✅ Расписание опубликовано. Уведомление получили бариста: {len(sent)}"
