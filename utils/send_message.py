@@ -22,4 +22,7 @@ async def notify_admin_and_managers(bot, message: str):
   # Отправка менеджерам (кроме тех, кто уже получил сообщение как администратор)
   for manager_id in get_manager_ids():
     if manager_id not in get_admin_ids():
-      await bot.send_message(manager_id, message)
+      try:
+        await bot.send_message(manager_id, message)
+      except Exception:
+        logging.exception("Не удалось отправить сообщение менеджеру %s", manager_id)

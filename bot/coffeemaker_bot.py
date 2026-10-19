@@ -7,12 +7,14 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from bot.feedback_bot import use_code
-from bot.planner import plan_next_week
+from bot.planner import plan_next_week, get_default_wishes_week, get_shift_wishes_text, get_last_day_text
 from utils.admin import is_admin, is_coffeemaker_or_admin
 from utils.send_message import notify_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji, get_beverage_count_emoji
 from db.users import get_user, set_user_as_coffeemaker, get_users, set_name_for_user
 from keyboards.main_menu import get_main_menu
+from keyboards.admin_panel import get_shift_wishes_keyboard
+from utils.date_utils import get_next_week_start
 from utils.code_generator import generate_code_6, generate_purchase_code_if_needed
 from utils.declension_noun import beverage_declension
 from db.feedback import get_feedback, update_feedback_code, check_if_code_unique as check_if_code_unique_from_feedback, confirm_code_usage as confirm_code_usage_from_feedback, update_or_create_feedback
@@ -316,13 +318,23 @@ async def add_certificate_code(message: Message, admin_id: int, code: str) -> bo
 async def send_plan_next_week(message: Message, bot: Bot):
   """Отправляет бариста сообщение о планировании следующей недели и присылает отчёт"""
   await message.answer("Начинаю отправку бариста сообщения о планировании...")
-  sent, failed = await plan_next_week(bot)
-  report = f"✅ Сообщение о планировании следующей недели отправлено бариста: {len(sent)}"
+  sent, failed, skipped = await plan_next_week(bot)
+  report = (f"📅 Приём пожеланий на следующую неделю открыт до конца воскресенья {get_last_day_text(get_next_week_start())}\n\n"
+            f"✅ Сообщение о планировании следующей недели отправлено бариста: {len(sent)}")
   if sent:
     report += "\n" + "\n".join(f"- {name}" for name in sent)
+  if skipped:
+    report += f"\n\n👌 Уже выбрали смены: {len(skipped)}\n" + "\n".join(f"- {name}" for name in skipped)
   if failed:
     report += f"\n\n❌ Не удалось отправить: {len(failed)}\n" + "\n".join(f"- {error}" for error in failed)
   await message.answer(report)
+
+
+async def send_shift_wishes(message: Message):
+  """Присылает сводку пожеланий бариста по сменам с переключением недель"""
+  week_start = get_default_wishes_week()
+  await message.answer(get_shift_wishes_text(week_start), parse_mode=ParseMode.HTML,
+                       reply_markup=get_shift_wishes_keyboard(week_start))
 
 
 async def add_subscription_for_user(message: Message, bot: Bot, user_id):
@@ -421,6 +433,12 @@ async def add_new_code(message: Message, bot: Bot):
 async def planNextWeek_handler(message: Message, bot: Bot):
   if is_admin(message.from_user.id):
     await send_plan_next_week(message, bot)
+
+
+@router.message(Command('shiftWishes'))
+async def shiftWishes_handler(message: Message):
+  if is_admin(message.from_user.id):
+    await send_shift_wishes(message)
 
 
 @router.message(Command('add_subscription'))

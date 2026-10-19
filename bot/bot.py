@@ -22,6 +22,8 @@ async def main():
   # Админ-панель подключается раньше роутеров с состояниями, чтобы кнопка «Админ-панель» работала в любом состоянии
   dp.include_router(admin_panel_bot.router)
   dp.include_router(admin_bot.router)
+  # Выбор смен подключается раньше роутеров с состояниями, чтобы кнопка «Мои смены» работала в любом состоянии
+  dp.include_router(planner.router)
   dp.include_router(payment_bot.router)
   dp.include_router(coffeemaker_bot.router)
   dp.include_router(cashbox_bot.router)
@@ -30,7 +32,6 @@ async def main():
   if settings.consts.PURCHASE_MODE:
     dp.include_router(purchase_bot.router)
   dp.include_router(broadcast_bot.router)
-  dp.include_router(planner.router)
   dp.include_router(subscription_bot.router)
   dp.include_router(anyText_bot.router)
   # Запускаем бота и пропускаем все накопленные входящие

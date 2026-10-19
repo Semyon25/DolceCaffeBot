@@ -12,7 +12,6 @@ from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, Teleg
 from utils.admin import is_admin
 from db.users import User, get_user, get_users
 from utils.user_utils import get_user_name
-from utils.date_utils import get_next_week_range
 from keyboards.main_menu import get_main_menu
 
 # Укажите задержку между отправками сообщений в секундах (чтобы не превысить лимиты Telegram)

@@ -2,11 +2,14 @@ from aiogram.types import ReplyKeyboardMarkup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from utils.admin import is_coffeemaker_or_admin, is_admin
 from db.feedback import get_feedback
+from db.users import get_user
 from utils.subcription_free_beverage import can_buy_subscription_today, get_active_subscription
 import settings.consts
 
 # Текст кнопки главного меню, открывающей админ-панель
 ADMIN_PANEL_BUTTON = "Админ-панель"
+# Текст кнопки главного меню бариста для выбора смен на следующую неделю
+MY_SHIFTS_BUTTON = "Мои смены"
 
 def get_main_menu(user_id) -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
@@ -15,6 +18,11 @@ def get_main_menu(user_id) -> ReplyKeyboardMarkup:
     if (is_coffeemaker_or_admin(user_id)):
         kb.button(text="Касса")
         kb.button(text="Ввести код")
+
+    # только бариста
+    user = get_user(user_id)
+    if user is not None and user.is_coffeemaker == 1:
+        kb.button(text=MY_SHIFTS_BUTTON)
         
     # kb.button(text="Меню")
 

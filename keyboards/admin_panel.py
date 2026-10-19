@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -30,6 +31,10 @@ class AdminUsersPage(CallbackData, prefix="adm_page"):
   page: int
 
 
+class AdminWishesWeek(CallbackData, prefix="adm_wishes"):
+  week: str  # Понедельник недели, ГГГГ-ММ-ДД
+
+
 # Разделы панели: код раздела -> (заголовок, [(текст кнопки, действие), ...])
 SECTIONS = {
   "users": ("👥 Пользователи", [
@@ -43,6 +48,7 @@ SECTIONS = {
     ("➕ Добавить бариста", "add_coffeemaker"),
     ("➖ Удалить бариста", "remove_coffeemaker"),
     ("📅 Запланировать следующую неделю", "plan_next_week"),
+    ("🗓 Пожелания по сменам", "shift_wishes"),
   ]),
   "codes": ("🎟 Коды и отзывы", [
     ("🔐 Добавить код сертификата", "add_code"),
@@ -112,4 +118,13 @@ def get_confirm_keyboard() -> InlineKeyboardMarkup:
   return InlineKeyboardMarkup(inline_keyboard=[[
     InlineKeyboardButton(text="✅ Да", callback_data=CONFIRM_CALLBACK),
     InlineKeyboardButton(text="❌ Отмена", callback_data=CANCEL_CALLBACK),
+  ]])
+
+
+def get_shift_wishes_keyboard(week_start: date) -> InlineKeyboardMarkup:
+  """Переключение недель в сводке пожеланий бариста"""
+  return InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text="◀️ Пред. неделя", callback_data=AdminWishesWeek(week=(week_start - timedelta(days=7)).isoformat()).pack()),
+    InlineKeyboardButton(text="🔄", callback_data=AdminWishesWeek(week=week_start.isoformat()).pack()),
+    InlineKeyboardButton(text="След. неделя ▶️", callback_data=AdminWishesWeek(week=(week_start + timedelta(days=7)).isoformat()).pack()),
   ]])

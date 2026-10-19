@@ -13,28 +13,32 @@ TIME_ORDER = {
     "16_22": (2, "16-22"),
 }
 
+# Код смены — "{день}_{время}", например "mon_10_16". Так смены хранятся в БД.
+# Все смены недели по порядку: Пн 10-16, Пн 16-22, Вт 10-16, ...
+ALL_SHIFTS = [
+    f"{day}_{time}"
+    for day, _ in sorted(DAY_ORDER.items(), key=lambda x: x[1][0])
+    for time, _ in sorted(TIME_ORDER.items(), key=lambda x: x[1][0])
+]
+
+
+def parse_shift(shift: str) -> tuple[str, str]:
+    """Делит код смены "mon_10_16" на день "mon" и время "10_16" """
+    day, time = shift.split("_", 1)
+    return day, time
+
 
 def format_shift(shift: str) -> str:
-    parts = shift.split("_")  # ['shift', 'mon', '10', '16']
-    day = parts[1]
-    time = "_".join(parts[2:])  # "10_16"
+    day, time = parse_shift(shift)
     _, day_name = DAY_ORDER[day]
     _, time_name = TIME_ORDER[time]
     return f"{day_name} {time_name}"
 
 
-def order_and_format_shifts(shifts: list[str]) -> list[str]:
-    parsed = []
-    for shift in shifts:
-        try:
-            parts = shift.split("_")  # ['shift', 'mon', '10', '16']
-            day = parts[1]
-            time = "_".join(parts[2:])  # "10_16"
-            day_order, day_name = DAY_ORDER[day]
-            time_order, time_name = TIME_ORDER[time]
-            parsed.append(((day_order, time_order), f"{day_name} {time_name}"))
-        except Exception:
-            continue
+def sort_shifts(shifts: list[str]) -> list[str]:
+    """Оставляет только известные смены без повторов и сортирует их по дням и времени"""
+    return [shift for shift in ALL_SHIFTS if shift in shifts]
 
-    parsed.sort(key=lambda x: x[0])
-    return [p[1] for p in parsed]
+
+def order_and_format_shifts(shifts: list[str]) -> list[str]:
+    return [format_shift(shift) for shift in sort_shifts(shifts)]

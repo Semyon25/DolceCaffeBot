@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from aiogram import Bot
 from aiogram import Router, F
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -12,15 +12,16 @@ from bot.admin_bot import send_admins_list, appoint_admin, dismiss_admin
 from bot.broadcast_bot import start_broadcast
 from bot.coffeemaker_bot import (send_coffeemakers_list, send_all_users_in_details, add_coffeemaker, remove_coffeemaker_by_id,
                                  approve_feedback_for_user, add_feedback_link, correct_purchase_count_for_user,
-                                 add_certificate_code, send_plan_next_week, add_subscription_for_user)
+                                 add_certificate_code, send_plan_next_week, add_subscription_for_user, send_shift_wishes)
+from bot.planner import get_shift_wishes_text
 from bot.payment_bot import send_payment_link
 from db.feedback import get_feedbacks_waiting_approval
 from db.purchases import get_count
 from db.users import User, get_user, get_users, get_user_by_username
 from keyboards.admin_panel import (SECTIONS, MAIN_SECTION, CANCEL_CALLBACK, CONFIRM_CALLBACK, SKIP_CALLBACK, CLOSE_CALLBACK,
-                                   AdminSection, AdminAction, AdminPickUser, AdminUsersPage,
+                                   AdminSection, AdminAction, AdminPickUser, AdminUsersPage, AdminWishesWeek,
                                    get_admin_panel_keyboard, get_section_keyboard, get_users_keyboard,
-                                   get_cancel_keyboard, get_confirm_keyboard)
+                                   get_cancel_keyboard, get_confirm_keyboard, get_shift_wishes_keyboard)
 from keyboards.main_menu import ADMIN_PANEL_BUTTON
 from utils.admin import is_admin, get_admin_ids
 from utils.user_utils import get_user_name, get_coffeemaker_emoji
@@ -66,7 +67,7 @@ CONFIRM_TEXTS = {
   "remove_coffeemaker": "Убрать {name} из бариста?",
   "add_admin": "Назначить {name} администратором?",
   "remove_admin": "Снять роль администратора с {name}?",
-  "plan_next_week": "📅 Отправить всем бариста сообщение о планировании следующей недели?",
+  "plan_next_week": "📅 Открыть приём пожеланий на следующую неделю и отправить бариста сообщение о планировании?",
 }
 
 # Списки, где пользователи отсортированы от новых к старым
@@ -186,6 +187,8 @@ async def handle_action(query: CallbackQuery, callback_data: AdminAction, state:
     await send_coffeemakers_list(query.message)
   elif action == "admins":
     await send_admins_list(query.message)
+  elif action == "shift_wishes":
+    await send_shift_wishes(query.message)
   elif action == "payment_link":
     await send_payment_link(query.message)
   elif action == "broadcast":
@@ -202,6 +205,13 @@ async def handle_action(query: CallbackQuery, callback_data: AdminAction, state:
     await state.update_data(action=action)
     await query.message.answer(get_choose_user_text(action, candidates), reply_markup=get_users_keyboard(candidates))
     await state.set_state(AdminPanelState.choosing_user)
+
+
+@router.callback_query(AdminWishesWeek.filter())
+async def handle_wishes_week(query: CallbackQuery, callback_data: AdminWishesWeek):
+  week_start = date.fromisoformat(callback_data.week)
+  await edit_message(query.message, get_shift_wishes_text(week_start), get_shift_wishes_keyboard(week_start))
+  await query.answer()
 
 
 @router.callback_query(AdminPanelState.choosing_user, AdminUsersPage.filter())

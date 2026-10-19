@@ -1,18 +1,23 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-def get_next_week_range(separator="."):
-    today = datetime.today()
-    weekday = today.weekday()
+MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 
-    days_until_next_monday = 7 - weekday
-    next_monday = today + timedelta(days=days_until_next_monday)
-    next_sunday = next_monday + timedelta(days=6)
-
-    start_str = next_monday.strftime(f"%d{separator}%m")
-    end_str = next_sunday.strftime(f"%d{separator}%m")
-
-    return start_str, end_str
+def now():
+    return datetime.now(MOSCOW_TZ)
 
 def today():
-    return datetime.now(ZoneInfo("Europe/Moscow")).date()
+    return now().date()
+
+def get_week_start(day: date) -> date:
+    """Понедельник недели, в которую входит day"""
+    return day - timedelta(days=day.weekday())
+
+def get_next_week_start() -> date:
+    """Понедельник следующей недели по московскому времени"""
+    return get_week_start(today()) + timedelta(days=7)
+
+def get_week_range(week_start: date, separator=".") -> tuple[str, str]:
+    """Даты понедельника и воскресенья недели в виде строк ДД{separator}ММ"""
+    week_end = week_start + timedelta(days=6)
+    return week_start.strftime(f"%d{separator}%m"), week_end.strftime(f"%d{separator}%m")
