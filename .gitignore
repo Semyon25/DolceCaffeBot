@@ -27,7 +27,7 @@ share/python-wheels/
 MANIFEST
 data/
 
-# БД бота и её резервные копии из migrations/
+# БД бота и её резервные копии
 *.db
 *.db.bak-*
 

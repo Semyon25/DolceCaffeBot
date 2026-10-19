@@ -2,8 +2,8 @@
 Создание БД бота с нуля: все таблицы в актуальном виде.
 
 Выполняется автоматически при запуске бота (main.py), если в БД нет ни одной таблицы
-или файла БД ещё нет. Существующую БД не меняет: для неё есть скрипты в migrations/.
-При добавлении таблицы её нужно описать и здесь, и в новом скрипте обновления.
+или файла БД ещё нет. Существующую БД не меняет.
+При добавлении таблицы её нужно описать здесь, а в работающую БД добавить отдельно.
 
 Ручной запуск из корня проекта: python -m db.init_db
 """
@@ -58,7 +58,7 @@ TABLES = [
     "used_at" TEXT,
     PRIMARY KEY("id" AUTOINCREMENT)
   )""",
-  # Пожелания бариста по сменам (migrations/001_shift_wishes.py)
+  # Пожелания бариста по сменам
   """CREATE TABLE planning_weeks (
     week_start VARCHAR NOT NULL,
     opened_at VARCHAR NOT NULL,
@@ -74,7 +74,7 @@ TABLES = [
     PRIMARY KEY (id),
     UNIQUE (week_start, user_id)
   )""",
-  # Расписание смен (migrations/002_shift_schedule.py)
+  # Расписание смен
   """CREATE TABLE schedule_weeks (
     week_start VARCHAR NOT NULL,
     published_at VARCHAR NOT NULL,
