@@ -32,7 +32,6 @@ db_name = require_secret("db_name")
 admin_ids = parse_ids(require_secret("admin_ids"))
 bot_token = require_secret("bot_token")
 manager_ids = parse_ids(require_secret("manager_ids", raise_if_missing=False))
-schedule_file = require_secret("schedule_file", raise_if_missing=False)
 
 # Оплата размещения бота: дата следующей оплаты (ДД.ММ.ГГГГ)
 PAYMENT_DATE_FORMAT = "%d.%m.%Y"

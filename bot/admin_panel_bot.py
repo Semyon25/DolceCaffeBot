@@ -14,14 +14,16 @@ from bot.coffeemaker_bot import (send_coffeemakers_list, send_all_users_in_detai
                                  approve_feedback_for_user, add_feedback_link, correct_purchase_count_for_user,
                                  add_certificate_code, send_plan_next_week, add_subscription_for_user, send_shift_wishes)
 from bot.planner import get_shift_wishes_text
+from bot.schedule_bot import send_schedule_editor
 from bot.payment_bot import send_payment_link
 from db.feedback import get_feedbacks_waiting_approval
 from db.purchases import get_count
 from db.users import User, get_user, get_users, get_user_by_username
 from keyboards.admin_panel import (SECTIONS, MAIN_SECTION, CANCEL_CALLBACK, CONFIRM_CALLBACK, SKIP_CALLBACK, CLOSE_CALLBACK,
-                                   AdminSection, AdminAction, AdminPickUser, AdminUsersPage, AdminWishesWeek,
+                                   AdminSection, AdminAction, AdminPickUser, AdminUsersPage,
                                    get_admin_panel_keyboard, get_section_keyboard, get_users_keyboard,
-                                   get_cancel_keyboard, get_confirm_keyboard, get_shift_wishes_keyboard)
+                                   get_cancel_keyboard, get_confirm_keyboard)
+from keyboards.schedule_keyboard import AdminWishesWeek, get_shift_wishes_keyboard
 from keyboards.main_menu import ADMIN_PANEL_BUTTON
 from utils.admin import is_admin, get_admin_ids
 from utils.user_utils import get_user_name, get_coffeemaker_emoji
@@ -189,6 +191,8 @@ async def handle_action(query: CallbackQuery, callback_data: AdminAction, state:
     await send_admins_list(query.message)
   elif action == "shift_wishes":
     await send_shift_wishes(query.message)
+  elif action == "schedule":
+    await send_schedule_editor(query.message)
   elif action == "payment_link":
     await send_payment_link(query.message)
   elif action == "broadcast":

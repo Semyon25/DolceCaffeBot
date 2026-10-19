@@ -4,17 +4,17 @@ from datetime import date, datetime, time, timedelta
 from aiogram import Bot
 from aiogram import Router, F
 from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup
+from db.shift_schedule import is_schedule_published, get_published_schedule
 from db.shift_wishes import open_planning_week, is_planning_week_opened, get_shift_wish, save_shift_wish, get_shift_wishes
-from db.users import User, get_users, get_user
+from db.users import get_users, get_user
 from keyboards.main_menu import MY_SHIFTS_BUTTON
 from keyboards.shifts_keyboard import ShiftCallback, NO_SHIFTS_ACTION, SUBMIT_ACTION, get_shifts_keyboard, get_selected_shifts
 from utils.date_utils import MOSCOW_TZ, now, today, get_week_start, get_next_week_start, get_week_range
-from utils.user_utils import get_user_name
-from utils.shifts import ALL_SHIFTS, format_shift, sort_shifts, order_and_format_shifts
-from utils.send_message import notify_admin_and_managers
+from utils.user_utils import get_user_name, get_short_name, is_coffeemaker
+from utils.shifts import ALL_SHIFTS, DAYS, DAY_ORDER, TIMES, TIME_ORDER, format_shift, sort_shifts, order_and_format_shifts
+from utils.send_message import notify_admin_and_managers, edit_message
 
 router = Router()
 
@@ -27,6 +27,7 @@ OPENING_TIME = time(15, 0)
 
 GREETING = "👋 Добрый день!\n\n📅 Давайте запланируем ваш график на следующую неделю."
 REMINDER = "⏰ Напоминаем: вы ещё не выбрали смены на следующую неделю."
+OUTDATED_TEXT = f"Сообщение устарело. Нажмите «{MY_SHIFTS_BUTTON}» в меню"
 
 
 def get_planning_opening(week_start: date) -> datetime:
@@ -39,9 +40,12 @@ def get_planning_deadline(week_start: date) -> datetime:
 
 
 def is_planning_open(week_start: date) -> bool:
-  """Можно ли сейчас выбирать смены на неделю: с пятницы 15:00 (или с досрочной рассылки) до конца воскресенья"""
+  """
+  Можно ли сейчас выбирать смены на неделю: с пятницы 15:00 (или с досрочной рассылки) до конца воскресенья.
+  После публикации расписания на неделю выбор закрывается.
+  """
   current = now()
-  if current >= get_planning_deadline(week_start):
+  if current >= get_planning_deadline(week_start) or is_schedule_published(week_start):
     return False
   return current >= get_planning_opening(week_start) or is_planning_week_opened(week_start)
 
@@ -67,6 +71,47 @@ def get_planning_text(week_start: date, wish: list[str] | None, intro: str) -> s
 
 def get_planning_keyboard(week_start: date, wish: list[str] | None) -> InlineKeyboardMarkup:
   return get_shifts_keyboard(week_start, wish, submitted=wish is not None)
+
+
+def get_names(user_ids) -> dict[int, str]:
+  """Короткие имена бариста для расписания (HTML)"""
+  return {user_id: html.escape(get_short_name(get_user(user_id), user_id)) for user_id in set(user_ids)}
+
+
+def get_schedule_lines(week_start: date, schedule: dict[str, int], viewer_id: int | None = None) -> str:
+  """Расписание недели по дням (HTML): «Пн 26.10: 10-16 Аня, 16-22 Боря». Смены viewer_id выделены как «вы»."""
+  names = get_names(schedule.values())
+  lines = []
+  for i, day in enumerate(DAYS):
+    parts = []
+    for shift_time in TIMES:
+      user_id = schedule.get(f"{day}_{shift_time}")
+      if user_id is None:
+        name = "—"
+      elif user_id == viewer_id:
+        name = "<b>вы</b>"
+      else:
+        name = names[user_id]
+      parts.append(f"{TIME_ORDER[shift_time][1]} {name}")
+    lines.append(f"{DAY_ORDER[day][1]} {week_start + timedelta(days=i):%d.%m}: " + ", ".join(parts))
+  return "\n".join(lines)
+
+
+def get_user_shifts(schedule: dict[str, int], user_id: int) -> list[str]:
+  return sort_shifts([shift for shift, assigned in schedule.items() if assigned == user_id])
+
+
+def format_user_shifts(shifts: list[str]) -> str:
+  return ", ".join(order_and_format_shifts(shifts)) if shifts else "нет смен"
+
+
+def get_schedule_text(week_start: date, schedule: dict[str, int], viewer_id: int, title: str) -> str:
+  """Расписание недели для бариста с его сменами"""
+  start, end = get_week_range(week_start)
+  text = f"{title} <b>{start} – {end}</b>\n\n{get_schedule_lines(week_start, schedule, viewer_id)}\n\n"
+  shifts = get_user_shifts(schedule, viewer_id)
+  text += f"✅ Ваши смены: <b>{format_user_shifts(shifts)}</b>" if shifts else "🙅 На этой неделе у вас нет смен"
+  return text
 
 
 async def send_planning_to_coffeemakers(bot: Bot, week_start: date, intro: str):
@@ -96,9 +141,11 @@ async def send_planning_to_coffeemakers(bot: Bot, week_start: date, intro: str):
 async def plan_next_week(bot: Bot):
   """
   Открывает приём пожеланий на следующую неделю (досрочно, если вызвано раньше пятницы 15:00)
-  и рассылает бариста предложение выбрать смены.
+  и рассылает бариста предложение выбрать смены. Если расписание уже опубликовано, ничего не делает.
   """
   week_start = get_next_week_start()
+  if is_schedule_published(week_start):
+    return [], [], []
   open_planning_week(week_start)
   return await send_planning_to_coffeemakers(bot, week_start, GREETING)
 
@@ -111,10 +158,6 @@ async def send_planning_reminder(bot: Bot):
   await send_planning_to_coffeemakers(bot, week_start, REMINDER)
 
 
-def is_coffeemaker(user: User | None) -> bool:
-  return user is not None and user.is_coffeemaker == 1
-
-
 @router.message(F.text.lower() == MY_SHIFTS_BUTTON.lower())
 async def handle_my_shifts(message: Message, state: FSMContext):
   user = get_user(message.from_user.id)
@@ -123,39 +166,39 @@ async def handle_my_shifts(message: Message, state: FSMContext):
     return
   # Кнопка меню прерывает незавершённый ввод (например, кода клиента)
   await state.clear()
+  user_id = int(user.id)
 
-  week_start = get_next_week_start()
-  if is_planning_open(week_start):
-    wish = get_shift_wish(week_start, user.id)
-    await message.answer(get_planning_text(week_start, wish, "📅 Планирование смен на следующую неделю"),
-                         parse_mode=ParseMode.HTML, reply_markup=get_planning_keyboard(week_start, wish))
+  current_week = get_week_start(today())
+  current_published = is_schedule_published(current_week)
+  if current_published:
+    await message.answer(get_schedule_text(current_week, get_published_schedule(current_week), user_id,
+                                           "📅 Расписание на текущую неделю"), parse_mode=ParseMode.HTML)
+
+  next_week = get_next_week_start()
+  if is_schedule_published(next_week):
+    await message.answer(get_schedule_text(next_week, get_published_schedule(next_week), user_id,
+                                           "📅 Расписание на следующую неделю"), parse_mode=ParseMode.HTML)
+    return
+  if is_planning_open(next_week):
+    wish = get_shift_wish(next_week, user_id)
+    await message.answer(get_planning_text(next_week, wish, "📅 Планирование смен на следующую неделю"),
+                         parse_mode=ParseMode.HTML, reply_markup=get_planning_keyboard(next_week, wish))
     return
 
   text = (f"📅 Выбрать смены на следующую неделю можно будет с пятницы "
-          f"<b>{get_planning_opening(week_start).strftime('%d.%m')}</b> 15:00 до конца воскресенья.")
-  current_week = get_week_start(today())
-  current_wish = get_shift_wish(current_week, user.id)
-  if current_wish is not None:
-    start, end = get_week_range(current_week)
-    text += f"\n\n📝 Ваши пожелания на текущую неделю с {start} по {end}: <b>{format_wish(current_wish)}</b>"
+          f"<b>{get_planning_opening(next_week).strftime('%d.%m')}</b> 15:00 до конца воскресенья.")
+  if not current_published:
+    current_wish = get_shift_wish(current_week, user_id)
+    if current_wish is not None:
+      start, end = get_week_range(current_week)
+      text += f"\n\n📝 Ваши пожелания на текущую неделю с {start} по {end}: <b>{format_wish(current_wish)}</b>"
   await message.answer(text, parse_mode=ParseMode.HTML)
-
-
-async def edit_planning_message(message: Message, text: str | None, reply_markup: InlineKeyboardMarkup | None):
-  # Повторное нажатие не меняет сообщение — Telegram отвечает ошибкой, её можно игнорировать
-  try:
-    if text is None:
-      await message.edit_reply_markup(reply_markup=reply_markup)
-    else:
-      await message.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
-  except TelegramBadRequest:
-    pass
 
 
 @router.callback_query(ShiftCallback.filter())
 async def handle_shift_callback(query: CallbackQuery, callback_data: ShiftCallback, bot: Bot):
   if not isinstance(query.message, Message):
-    await query.answer(f"Сообщение устарело. Нажмите «{MY_SHIFTS_BUTTON}» в меню", show_alert=True)
+    await query.answer(OUTDATED_TEXT, show_alert=True)
     return
   user = get_user(query.from_user.id)
   if not is_coffeemaker(user):
@@ -164,11 +207,15 @@ async def handle_shift_callback(query: CallbackQuery, callback_data: ShiftCallba
   try:
     week_start = date.fromisoformat(callback_data.week)
   except ValueError:
-    await query.answer(f"Сообщение устарело. Нажмите «{MY_SHIFTS_BUTTON}» в меню", show_alert=True)
+    await query.answer(OUTDATED_TEXT, show_alert=True)
     return
   if not is_planning_open(week_start):
-    await query.answer("⛔ Приём пожеланий на эту неделю закрыт", show_alert=True)
-    await edit_planning_message(query.message, None, None)  # Убираем кнопки
+    if is_schedule_published(week_start):
+      await query.answer(f"📅 Расписание на эту неделю уже составлено. Нажмите «{MY_SHIFTS_BUTTON}» в меню, чтобы посмотреть его",
+                         show_alert=True)
+    else:
+      await query.answer("⛔ Приём пожеланий на эту неделю закрыт", show_alert=True)
+    await edit_message(query.message, None, None)  # Убираем кнопки
     return
 
   wish = get_shift_wish(week_start, user.id)
@@ -181,7 +228,7 @@ async def handle_shift_callback(query: CallbackQuery, callback_data: ShiftCallba
       selected.remove(action)
     else:
       selected.append(action)
-    await edit_planning_message(query.message, None, get_shifts_keyboard(week_start, selected, submitted=wish is not None))
+    await edit_message(query.message, None, get_shifts_keyboard(week_start, selected, submitted=wish is not None))
     await query.answer()
     return
 
@@ -197,13 +244,13 @@ async def handle_shift_callback(query: CallbackQuery, callback_data: ShiftCallba
     return
 
   if wish is not None and sort_shifts(wish) == shifts:
-    await edit_planning_message(query.message, None, get_planning_keyboard(week_start, wish))
+    await edit_message(query.message, None, get_planning_keyboard(week_start, wish))
     await query.answer("Этот выбор уже отправлен руководству 👌", show_alert=True)
     return
 
   previous = save_shift_wish(week_start, user.id, shifts)
-  await edit_planning_message(query.message, get_planning_text(week_start, shifts, "✅ Ваш выбор отправлен руководству!"),
-                              get_planning_keyboard(week_start, shifts))
+  await edit_message(query.message, get_planning_text(week_start, shifts, "✅ Ваш выбор отправлен руководству!"),
+                     get_planning_keyboard(week_start, shifts))
   await query.answer("✅ Отправлено")
 
   start, end = get_week_range(week_start, "")
@@ -219,34 +266,32 @@ async def handle_shift_callback(query: CallbackQuery, callback_data: ShiftCallba
 @router.callback_query(F.data.startswith("shift_"))
 async def handle_outdated_shift_callback(query: CallbackQuery):
   # Кнопки из сообщений, отправленных до появления сохранения выбора в БД
-  await query.answer(f"Сообщение устарело. Нажмите «{MY_SHIFTS_BUTTON}» в меню, чтобы выбрать смены", show_alert=True)
-
-
-def get_short_name(user: User | None, user_id: int) -> str:
-  if user is None:
-    return str(user_id)
-  return user.name or user.tg_name or (f"@{user.username}" if user.username else str(user_id))
+  await query.answer(f"{OUTDATED_TEXT}, чтобы выбрать смены", show_alert=True)
 
 
 def get_default_wishes_week() -> date:
   """Неделя, которую показывать администраторам: следующая, если по ней уже идёт приём, иначе текущая"""
   next_week = get_next_week_start()
-  if is_planning_open(next_week) or get_shift_wishes(next_week):
+  if is_planning_open(next_week) or get_shift_wishes(next_week) or is_schedule_published(next_week):
     return next_week
   return get_week_start(today())
+
+
+def get_planning_status(week_start: date) -> str:
+  """Состояние приёма пожеланий на неделю для администраторов"""
+  if is_planning_open(week_start):
+    return f"🟢 Приём пожеланий открыт до конца воскресенья {get_last_day_text(week_start)}"
+  if is_schedule_published(week_start):
+    return "🔒 Расписание опубликовано, приём пожеланий закрыт"
+  if now() < get_planning_opening(week_start):
+    return f"⚪️ Приём пожеланий ещё не открыт, откроется в пятницу {get_planning_opening(week_start).strftime('%d.%m')} в 15:00"
+  return "🔴 Приём пожеланий закрыт"
 
 
 def get_shift_wishes_text(week_start: date) -> str:
   """Сводка пожеланий бариста на неделю для администраторов"""
   start, end = get_week_range(week_start)
-  text = f"🗓 <b>Пожелания бариста на неделю {start} – {end}</b>\n"
-
-  if is_planning_open(week_start):
-    text += f"🟢 Приём открыт до конца воскресенья {get_last_day_text(week_start)}\n"
-  elif now() < get_planning_opening(week_start):
-    text += f"⚪️ Приём ещё не открыт, откроется в пятницу {get_planning_opening(week_start).strftime('%d.%m')} в 15:00\n"
-  else:
-    text += "🔴 Приём закрыт\n"
+  text = f"🗓 <b>Пожелания бариста на неделю {start} – {end}</b>\n{get_planning_status(week_start)}\n"
 
   wishes = get_shift_wishes(week_start)
   users = {wish.user_id: get_user(wish.user_id) for wish in wishes}
@@ -262,7 +307,7 @@ def get_shift_wishes_text(week_start: date) -> str:
     text += f"☕ {name}: <b>{format_wish(wish.shifts)}</b> <i>({updated_at})</i>\n"
 
   # Ждём ответа только от действующих бариста и только пока по неделе не закрыт приём
-  if now() < get_planning_deadline(week_start):
+  if now() < get_planning_deadline(week_start) and not is_schedule_published(week_start):
     answered = {wish.user_id for wish in wishes}
     waiting = [user for user in get_users() if is_coffeemaker(user) and int(user.id) not in answered]
     if waiting:

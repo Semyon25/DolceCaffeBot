@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 DAY_ORDER = {
     "mon": (1, "Пн"),
     "tue": (2, "Вт"),
@@ -13,13 +15,26 @@ TIME_ORDER = {
     "16_22": (2, "16-22"),
 }
 
+# Дни недели и время смен по порядку
+DAYS = [day for day, _ in sorted(DAY_ORDER.items(), key=lambda x: x[1][0])]
+TIMES = [time for time, _ in sorted(TIME_ORDER.items(), key=lambda x: x[1][0])]
+
+# Последняя смена дня: бариста этой смены закрывает кофейню
+CLOSING_TIME = TIMES[-1]
+
 # Код смены — "{день}_{время}", например "mon_10_16". Так смены хранятся в БД.
 # Все смены недели по порядку: Пн 10-16, Пн 16-22, Вт 10-16, ...
-ALL_SHIFTS = [
-    f"{day}_{time}"
-    for day, _ in sorted(DAY_ORDER.items(), key=lambda x: x[1][0])
-    for time, _ in sorted(TIME_ORDER.items(), key=lambda x: x[1][0])
-]
+ALL_SHIFTS = [f"{day}_{time}" for day in DAYS for time in TIMES]
+
+
+def get_shift_code(day: date, time: str) -> str:
+    """Код смены в день day, например "mon_16_22" """
+    return f"{DAYS[day.weekday()]}_{time}"
+
+
+def get_shift_date(week_start: date, shift: str) -> date:
+    day, _ = parse_shift(shift)
+    return week_start + timedelta(days=DAYS.index(day))
 
 
 def parse_shift(shift: str) -> tuple[str, str]:

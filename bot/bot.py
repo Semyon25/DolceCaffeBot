@@ -1,6 +1,6 @@
 from config import bot_token
 from aiogram import Bot, Dispatcher
-from bot import start, help, admin_panel_bot, admin_bot, payment_bot, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, subscription_bot
+from bot import start, help, admin_panel_bot, admin_bot, payment_bot, feedback_bot, coffeemaker_bot, anyText_bot, broadcast_bot, purchase_bot, cashbox_bot, planner, schedule_bot, subscription_bot
 import settings.consts
 from services.scheduler import SchedulerService
 from services.username_middleware import UsernameMiddleware
@@ -24,6 +24,7 @@ async def main():
   dp.include_router(admin_bot.router)
   # Выбор смен подключается раньше роутеров с состояниями, чтобы кнопка «Мои смены» работала в любом состоянии
   dp.include_router(planner.router)
+  dp.include_router(schedule_bot.router)
   dp.include_router(payment_bot.router)
   dp.include_router(coffeemaker_bot.router)
   dp.include_router(cashbox_bot.router)

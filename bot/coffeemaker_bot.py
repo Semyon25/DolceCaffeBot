@@ -13,7 +13,8 @@ from utils.send_message import notify_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji, get_beverage_count_emoji
 from db.users import get_user, set_user_as_coffeemaker, get_users, set_name_for_user
 from keyboards.main_menu import get_main_menu
-from keyboards.admin_panel import get_shift_wishes_keyboard
+from keyboards.schedule_keyboard import get_shift_wishes_keyboard
+from db.shift_schedule import is_schedule_published
 from utils.date_utils import get_next_week_start
 from utils.code_generator import generate_code_6, generate_purchase_code_if_needed
 from utils.declension_noun import beverage_declension
@@ -317,6 +318,9 @@ async def add_certificate_code(message: Message, admin_id: int, code: str) -> bo
 
 async def send_plan_next_week(message: Message, bot: Bot):
   """Отправляет бариста сообщение о планировании следующей недели и присылает отчёт"""
+  if is_schedule_published(get_next_week_start()):
+    await message.answer("⛔ Расписание на следующую неделю уже опубликовано, выбор смен закрыт")
+    return
   await message.answer("Начинаю отправку бариста сообщения о планировании...")
   sent, failed, skipped = await plan_next_week(bot)
   report = (f"📅 Приём пожеланий на следующую неделю открыт до конца воскресенья {get_last_day_text(get_next_week_start())}\n\n"

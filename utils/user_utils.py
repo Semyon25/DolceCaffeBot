@@ -20,6 +20,15 @@ def get_user_name(user: User):
   else:
     return str(user.id)
 
+def get_short_name(user: User | None, user_id: int) -> str:
+  """Короткое имя для расписания: имя бариста, имя в Telegram или @username"""
+  if user is None:
+    return str(user_id)
+  return user.name or user.tg_name or (f"@{user.username}" if user.username else str(user_id))
+
+def is_coffeemaker(user: User | None) -> bool:
+  return user is not None and user.is_coffeemaker == 1
+
 def get_coffeemaker_emoji(user: User):
   if user.is_coffeemaker != 0:
     return '☕'
