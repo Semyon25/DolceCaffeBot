@@ -2,14 +2,21 @@ import os
 from pathlib import Path
 from dotenv import dotenv_values
 
-# Секреты ищутся сначала в файле .env, а если файла или параметра в нём нет — в переменных окружения
+# Секреты ищутся сначала в файле .env, а если файла или параметра в нём нет — в переменных окружения.
+# Регистр названия не важен: db_name, DB_NAME и Db_Name — один и тот же параметр
 SECRETS_FILE = Path(__file__).resolve().parent / ".env"
 
-_secrets = dotenv_values(SECRETS_FILE) if SECRETS_FILE.exists() else {}
+
+def _lower_keys(values) -> dict[str, str | None]:
+  return {key.lower(): value for key, value in values.items()}
+
+
+_secrets = _lower_keys(dotenv_values(SECRETS_FILE)) if SECRETS_FILE.exists() else {}
 
 
 def _get_secret(var_name: str) -> str | None:
-  for value in (_secrets.get(var_name), os.environ.get(var_name)):
+  name = var_name.lower()
+  for value in (_secrets.get(name), _lower_keys(os.environ).get(name)):
     if value is not None and value.strip() != "":
       return value.strip()
   return None
