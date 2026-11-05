@@ -5,6 +5,7 @@ import settings.consts
 from services.scheduler import SchedulerService
 from services.username_middleware import UsernameMiddleware
 from services.retry_middleware import RetryRequestMiddleware
+from services import error_handler
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
@@ -17,6 +18,8 @@ async def main():
   dp = Dispatcher()
   # Обновление username пользователя в базе при любом взаимодействии с ботом
   dp.update.outer_middleware(UsernameMiddleware())
+  # Обработка ошибок, после которых трейсбек в логе не нужен
+  dp.include_router(error_handler.router)
   dp.include_router(start.router)
   dp.include_router(help.router)
   # Админ-панель подключается раньше роутеров с состояниями, чтобы кнопка «Админ-панель» работала в любом состоянии

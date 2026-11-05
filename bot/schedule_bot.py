@@ -214,8 +214,9 @@ async def handle_schedule_week(query: CallbackQuery, callback_data: ScheduleWeek
   if week_start is None:
     await query.answer("Действие устарело. Откройте расписание заново: /schedule", show_alert=True)
     return
-  await show_editor(query, get_week_plan(week_start))
+  # Отвечаем на нажатие сразу: Telegram принимает ответ только в первые секунды
   await query.answer()
+  await show_editor(query, get_week_plan(week_start))
 
 
 def get_shift_count(plan: WeekPlan, user_id: int) -> int:

@@ -214,8 +214,9 @@ async def handle_action(query: CallbackQuery, callback_data: AdminAction, state:
 @router.callback_query(AdminWishesWeek.filter())
 async def handle_wishes_week(query: CallbackQuery, callback_data: AdminWishesWeek):
   week_start = date.fromisoformat(callback_data.week)
-  await edit_message(query.message, get_shift_wishes_text(week_start), get_shift_wishes_keyboard(week_start))
+  # Отвечаем на нажатие сразу: Telegram принимает ответ только в первые секунды
   await query.answer()
+  await edit_message(query.message, get_shift_wishes_text(week_start), get_shift_wishes_keyboard(week_start))
 
 
 @router.callback_query(AdminPanelState.choosing_user, AdminUsersPage.filter())
