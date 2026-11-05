@@ -14,7 +14,7 @@ from keyboards.shifts_keyboard import ShiftCallback, NO_SHIFTS_ACTION, SUBMIT_AC
 from utils.date_utils import MOSCOW_TZ, now, today, get_week_start, get_next_week_start, get_week_range
 from utils.user_utils import get_user_name, get_short_name, is_coffeemaker
 from utils.shifts import ALL_SHIFTS, DAYS, DAY_ORDER, TIMES, TIME_ORDER, format_shift, sort_shifts, order_and_format_shifts
-from utils.send_message import notify_admin_and_managers, edit_message
+from utils.send_message import notify_admin, edit_message
 
 router = Router()
 
@@ -260,7 +260,7 @@ async def handle_shift_callback(query: CallbackQuery, callback_data: ShiftCallba
   else:
     action_text = f"изменил выбор смен:\n{shifts_text}" if shifts else "изменил выбор: без смен"
     action_text += f"\n\nБыло: {format_wish(previous)}"
-  await notify_admin_and_managers(bot, f"#planner #week_{start}_{end}\nБариста {get_user_name(user)} {action_text}")
+  await notify_admin(bot,f"#planner #week_{start}_{end}\nБариста {get_user_name(user)} {action_text}")
 
 
 @router.callback_query(F.data.startswith("shift_"))

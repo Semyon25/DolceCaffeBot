@@ -5,6 +5,7 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, Message
 import config
+from db.payments import get_payment_date, mark_paid
 from db.users import get_user
 from services.beget_payment import create_sbp_payment_link
 from utils.admin import is_admin
@@ -19,10 +20,11 @@ PAYMENT_PERIOD_DAYS = 30
 # За сколько дней до оплаты напоминать (0 — в день оплаты)
 REMIND_DAYS_BEFORE = (3, 1, 0)
 PAID_CALLBACK_PREFIX = "payment_paid_"
+PAYMENT_DATE_FORMAT = "%d.%m.%Y"
 
 
 def format_date(d: date) -> str:
-  return d.strftime(config.PAYMENT_DATE_FORMAT)
+  return d.strftime(PAYMENT_DATE_FORMAT)
 
 
 def get_payment_keyboard(due_date: date, payment_link: str | None) -> InlineKeyboardMarkup:
@@ -39,7 +41,7 @@ async def send_payment_reminder(bot: Bot):
   """
   Напоминает администраторам об оплате размещения бота за 3 дня, за 1 день и в день оплаты.
   """
-  due_date = config.payment_date
+  due_date = get_payment_date()
   if due_date is None:
     return
   days_left = (due_date - today()).days
@@ -79,7 +81,7 @@ async def send_payment_link(message: Message):
   if payment_link:
     await message.answer(f"💳 Ссылка СБП на оплату размещения бота ({config.payment_amount} ₽):\n{payment_link}")
   else:
-    await message.answer("❌ Не удалось получить ссылку. Проверьте beget_login, beget_password и payment_amount в .env и логи бота.")
+    await message.answer("❌ Не удалось получить ссылку. Проверьте beget_login, beget_password и payment_amount в .env или переменных окружения и логи бота.")
 
 
 @router.callback_query(F.data.startswith(PAID_CALLBACK_PREFIX))
@@ -91,16 +93,15 @@ async def handle_payment_paid(query: CallbackQuery, bot: Bot):
   paid_date = date.fromisoformat(query.data.removeprefix(PAID_CALLBACK_PREFIX))
   await query.message.edit_reply_markup(reply_markup=None)
 
-  # Оплату за эту дату уже отметил другой администратор
-  if config.payment_date != paid_date:
-    await query.answer("Оплата уже отмечена ✅", show_alert=True)
-    return
-
   # Новый период отсчитывается от даты оплаты, а если оплата сильно просрочена — от сегодняшнего дня
   next_date = paid_date + timedelta(days=PAYMENT_PERIOD_DAYS)
   if next_date <= today():
     next_date = today() + timedelta(days=PAYMENT_PERIOD_DAYS)
-  config.save_payment_date(next_date)
+
+  # Оплату за эту дату уже отметил другой администратор
+  if not mark_paid(paid_date, query.from_user.id, next_date):
+    await query.answer("Оплата уже отмечена ✅", show_alert=True)
+    return
 
   await query.answer("Спасибо! Оплата отмечена ✅")
   admin = get_user(query.from_user.id)

@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 from db.users import get_user
-from utils.admin import is_admin, get_admin_ids, add_admin, remove_admin
+from utils.admin import is_admin, is_main_admin, get_admin_ids, add_admin, remove_admin
 from utils.send_message import notify_admin
 from utils.user_utils import get_user_name
 from keyboards.main_menu import get_main_menu
@@ -31,7 +31,8 @@ async def send_admins_list(message: Message):
   answer = "#admins\nАдминистраторы:\n"
   for number, admin_id in enumerate(get_admin_ids(), start=1):
     name = get_user_name(get_user(admin_id)) or "не зарегистрирован в боте"
-    answer += f"{number}. {name} ({admin_id})\n"
+    main_mark = " — главный" if is_main_admin(admin_id) else ""
+    answer += f"{number}. {name} ({admin_id}){main_mark}\n"
   await message.answer(answer)
 
 
@@ -43,7 +44,7 @@ async def appoint_admin(message: Message, bot: Bot, admin_id: int, user_id: int)
   if user is None:
     await message.answer("❌ Такого пользователя не существует! Пользователь должен сначала запустить бота")
     return
-  if not add_admin(user_id):
+  if not add_admin(user_id, added_by=admin_id):
     await message.answer("🟡 Данный пользователь уже администратор!")
     return
   await notify_admin(bot, f"#admins\n✅ {get_user_name(get_user(admin_id))} назначил администратором {get_user_name(user)} ({user_id})")
@@ -57,6 +58,9 @@ async def dismiss_admin(message: Message, bot: Bot, admin_id: int, user_id: int)
   # Запрещаем удалять себя, чтобы в боте всегда оставался хотя бы один администратор
   if user_id == admin_id:
     await message.answer("⚠️ Нельзя снять роль администратора с самого себя!")
+    return
+  if is_main_admin(user_id):
+    await message.answer("⚠️ Нельзя снять роль с главного администратора!")
     return
   if not remove_admin(user_id):
     await message.answer("❌ Данный пользователь не администратор!")

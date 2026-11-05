@@ -25,7 +25,7 @@ from keyboards.admin_panel import (SECTIONS, MAIN_SECTION, CANCEL_CALLBACK, CONF
                                    get_cancel_keyboard, get_confirm_keyboard)
 from keyboards.schedule_keyboard import AdminWishesWeek, get_shift_wishes_keyboard
 from keyboards.main_menu import ADMIN_PANEL_BUTTON
-from utils.admin import is_admin, get_admin_ids
+from utils.admin import is_admin, is_main_admin, get_admin_ids
 from utils.user_utils import get_user_name, get_coffeemaker_emoji
 
 router = Router()
@@ -100,7 +100,7 @@ def get_candidates(action: str, admin_id: int, query: str | None = None) -> list
   Возвращает пользователей (id, подпись), из которых выбирают для действия. query — строка поиска по имени.
   """
   if action == "remove_admin":
-    candidates = [(admin, get_user_name(get_user(admin)) or str(admin)) for admin in get_admin_ids() if admin != admin_id]
+    candidates = [(admin, get_user_name(get_user(admin)) or str(admin)) for admin in get_admin_ids() if admin != admin_id and not is_main_admin(admin)]
   else:
     if action == "remove_coffeemaker":
       users = [user for user in get_users() if user.is_coffeemaker]

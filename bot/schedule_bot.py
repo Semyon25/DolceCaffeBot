@@ -17,7 +17,7 @@ from keyboards.schedule_keyboard import (NOBODY, RESET, PUBLISH_ACTION, CONFIRM_
                                          get_schedule_editor_keyboard, get_shift_picker_keyboard, get_publish_confirm_keyboard)
 from utils.admin import is_admin
 from utils.date_utils import today, get_week_range
-from utils.send_message import notify_admin_and_managers, edit_message
+from utils.send_message import notify_admin, edit_message
 from utils.shifts import ALL_SHIFTS, format_shift, get_shift_date
 from utils.user_utils import get_short_name, get_user_name, is_coffeemaker
 
@@ -361,7 +361,7 @@ async def notify_about_schedule(message: Message, bot: Bot, week_start: date, sc
                                 previous: dict[str, int] | None):
   """
   Рассылает опубликованное расписание: при первой публикации — всем бариста, при изменении — тем,
-  у кого изменились смены. Администраторам и менеджерам приходит расписание, администратору — отчёт о рассылке.
+  у кого изменились смены. Администраторам приходит расписание, администратору — отчёт о рассылке.
   """
   start, end = get_week_range(week_start)
   if previous is None:
@@ -396,7 +396,7 @@ async def notify_about_schedule(message: Message, bot: Bot, week_start: date, sc
     names = {user_id: get_short_name(get_user(user_id), user_id) for user_id in set(schedule.values()) | set(previous.values())}
     admin_text = (f"{hashtags}\n✏️ <b>Изменено расписание на неделю {start} – {end}</b>\n\n"
                   f"{get_changes_text(previous, schedule, week_start, names)}\n\n{get_schedule_lines(schedule)}")
-  await notify_admin_and_managers(bot, admin_text, parse_mode=ParseMode.HTML)
+  await notify_admin(bot, admin_text, parse_mode=ParseMode.HTML)
 
   report = f"✅ Расписание опубликовано. Уведомление получили бариста: {len(sent)}"
   if sent:

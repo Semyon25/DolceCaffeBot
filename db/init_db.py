@@ -23,6 +23,22 @@ TABLES = [
     "name" TEXT,
     PRIMARY KEY("id")
   )""",
+  # Администраторы, назначенные в боте (главный задаётся в .env)
+  """CREATE TABLE admins (
+    user_id NUMERIC NOT NULL,
+    added_by NUMERIC,
+    added_at VARCHAR NOT NULL,
+    PRIMARY KEY (user_id)
+  )""",
+  # Сроки оплаты размещения бота, последняя строка — текущий срок
+  """CREATE TABLE payments (
+    id INTEGER NOT NULL,
+    due_date VARCHAR NOT NULL,
+    created_at VARCHAR NOT NULL,
+    paid_at VARCHAR,
+    paid_by NUMERIC,
+    PRIMARY KEY (id)
+  )""",
   """CREATE TABLE "feedback" (
     "user_id" NUMERIC NOT NULL UNIQUE,
     "link" TEXT,
