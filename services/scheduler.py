@@ -5,6 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from bot.planner import plan_next_week, send_planning_reminder
+from bot.schedule_bot import remind_to_publish_schedule, auto_publish_schedule
 from bot.reminder import send_closing_reminder
 from bot.payment_bot import send_payment_reminder
 
@@ -17,6 +18,8 @@ class SchedulerService:
         self.scheduler = AsyncIOScheduler(timezone=MOSCOW_TZ)
         self.week_job = None
         self.planning_reminder_job = None
+        self.publish_reminder_job = None
+        self.auto_publish_job = None
         self.reminder_job = None
         self.payment_job = None
 
@@ -25,6 +28,12 @@ class SchedulerService:
 
     async def send_planning_reminder(self):
         await send_planning_reminder(self.bot)
+
+    async def remind_to_publish_schedule(self):
+        await remind_to_publish_schedule(self.bot)
+
+    async def auto_publish_schedule(self):
+        await auto_publish_schedule(self.bot)
 
     async def send_reminder(self):
         await send_closing_reminder(self.bot)
@@ -51,6 +60,28 @@ class SchedulerService:
                 CronTrigger(
                     day_of_week="sat",
                     hour=15,
+                    minute=0,
+                    timezone=MOSCOW_TZ
+                )
+            )
+        # Напоминание администраторам опубликовать расписание на следующую неделю
+        if not self.publish_reminder_job:
+            self.publish_reminder_job = self.scheduler.add_job(
+                self.remind_to_publish_schedule,
+                CronTrigger(
+                    day_of_week="sun",
+                    hour=20,
+                    minute=0,
+                    timezone=MOSCOW_TZ
+                )
+            )
+        # Автоматическая публикация расписания на следующую неделю, если его не опубликовали вручную
+        if not self.auto_publish_job:
+            self.auto_publish_job = self.scheduler.add_job(
+                self.auto_publish_schedule,
+                CronTrigger(
+                    day_of_week="sun",
+                    hour=21,
                     minute=0,
                     timezone=MOSCOW_TZ
                 )
@@ -83,5 +114,7 @@ class SchedulerService:
             self.scheduler.shutdown(wait=False)
         self.week_job = None
         self.planning_reminder_job = None
+        self.publish_reminder_job = None
+        self.auto_publish_job = None
         self.reminder_job = None
         self.payment_job = None

@@ -19,6 +19,9 @@ TIME_ORDER = {
 DAYS = [day for day, _ in sorted(DAY_ORDER.items(), key=lambda x: x[1][0])]
 TIMES = [time for time, _ in sorted(TIME_ORDER.items(), key=lambda x: x[1][0])]
 
+# Время всех смен дня подряд: «10-22»
+FULL_DAY_TIME = f"{TIME_ORDER[TIMES[0]][1].split('-')[0]}-{TIME_ORDER[TIMES[-1]][1].split('-')[1]}"
+
 # Последняя смена дня: бариста этой смены закрывает кофейню
 CLOSING_TIME = TIMES[-1]
 
@@ -56,4 +59,13 @@ def sort_shifts(shifts: list[str]) -> list[str]:
 
 
 def order_and_format_shifts(shifts: list[str]) -> list[str]:
-    return [format_shift(shift) for shift in sort_shifts(shifts)]
+    """Смены по порядку: «Пн 10-16». Если в день выбраны все смены, день пишется одной сменой: «Пн 10-22»"""
+    shifts = sort_shifts(shifts)
+    result = []
+    for day in DAYS:
+        day_shifts = [shift for shift in shifts if parse_shift(shift)[0] == day]
+        if len(day_shifts) == len(TIMES):
+            result.append(f"{DAY_ORDER[day][1]} {FULL_DAY_TIME}")
+        else:
+            result.extend(format_shift(shift) for shift in day_shifts)
+    return result

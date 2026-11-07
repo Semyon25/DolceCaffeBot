@@ -16,7 +16,7 @@ from keyboards.schedule_keyboard import (NOBODY, RESET, PUBLISH_ACTION, CONFIRM_
                                          ScheduleWeek, ScheduleShift, ScheduleAssign, ScheduleAction,
                                          get_schedule_editor_keyboard, get_shift_picker_keyboard, get_publish_confirm_keyboard)
 from utils.admin import is_admin
-from utils.date_utils import today, get_week_range
+from utils.date_utils import today, get_next_week_start, get_week_range
 from utils.send_message import notify_admin, edit_message
 from utils.shifts import ALL_SHIFTS, format_shift, get_shift_date
 from utils.user_utils import get_short_name, get_user_name, is_coffeemaker
@@ -333,7 +333,8 @@ async def handle_schedule_action(query: CallbackQuery, callback_data: ScheduleAc
   schedule = plan.schedule
   publish_schedule(plan.week_start, schedule)
   await show_editor(query, get_week_plan(plan.week_start))
-  await notify_about_schedule(query.message, bot, plan.week_start, schedule, previous)
+  report = await notify_about_schedule(bot, plan.week_start, schedule, previous)
+  await query.message.answer(report)
 
 
 async def show_publish_confirm(query: CallbackQuery, plan: WeekPlan):
@@ -358,11 +359,12 @@ async def show_publish_confirm(query: CallbackQuery, plan: WeekPlan):
   await edit_message(query.message, text, get_publish_confirm_keyboard(plan.week_start))
 
 
-async def notify_about_schedule(message: Message, bot: Bot, week_start: date, schedule: dict[str, int],
-                                previous: dict[str, int] | None):
+async def notify_about_schedule(bot: Bot, week_start: date, schedule: dict[str, int],
+                                previous: dict[str, int] | None, auto: bool = False, note: str = "") -> str:
   """
   Рассылает опубликованное расписание: при первой публикации — всем бариста, при изменении — тем,
-  у кого изменились смены. Администраторам приходит расписание, администратору — отчёт о рассылке.
+  у кого изменились смены. Администраторам приходит расписание (note (HTML) дописывается в конец),
+  а возвращается отчёт о рассылке. auto — расписание опубликовал бот, а не администратор.
   """
   start, end = get_week_range(week_start)
   if previous is None:
@@ -392,11 +394,14 @@ async def notify_about_schedule(message: Message, bot: Bot, week_start: date, sc
   hashtag_start, hashtag_end = get_week_range(week_start, "")
   hashtags = f"#schedule #week_{hashtag_start}_{hashtag_end}"
   if previous is None:
-    admin_text = f"{hashtags}\n📅 <b>Опубликовано расписание на неделю {start} – {end}</b>\n\n{get_schedule_lines(schedule)}"
+    title = "🤖 <b>Автоматически опубликовано расписание" if auto else "📅 <b>Опубликовано расписание"
+    admin_text = f"{hashtags}\n{title} на неделю {start} – {end}</b>\n\n{get_schedule_lines(schedule)}"
   else:
     names = {user_id: get_short_name(get_user(user_id), user_id) for user_id in set(schedule.values()) | set(previous.values())}
     admin_text = (f"{hashtags}\n✏️ <b>Изменено расписание на неделю {start} – {end}</b>\n\n"
                   f"{get_changes_text(previous, schedule, week_start, names)}\n\n{get_schedule_lines(schedule)}")
+  if note:
+    admin_text += f"\n\n{note}"
   await notify_admin(bot, admin_text, parse_mode=ParseMode.HTML)
 
   report = f"✅ Расписание опубликовано. Уведомление получили бариста: {len(sent)}"
@@ -404,4 +409,49 @@ async def notify_about_schedule(message: Message, bot: Bot, week_start: date, sc
     report += "\n" + "\n".join(f"- {name}" for name in sent)
   if failed:
     report += f"\n\n❌ Не удалось отправить: {len(failed)}\n" + "\n".join(f"- {error}" for error in failed)
-  await message.answer(report)
+  return report
+
+
+# Расписание на следующую неделю администраторы публикуют до воскресенья 21:00, иначе его публикует бот
+AUTO_PUBLISH_TIME = "21:00"
+
+
+def get_conflicts_text(plan: WeekPlan) -> str:
+  """Смены, которые выбрали несколько бариста и которые администратор ещё не распределил"""
+  conflicts = [shift for shift in plan.shifts if shift.conflict]
+  if not conflicts:
+    return ""
+  return "⚠️ Смены, которые выбрали несколько бариста: " + ", ".join(format_shift(shift.shift) for shift in conflicts)
+
+
+async def remind_to_publish_schedule(bot: Bot):
+  """Напоминает администраторам опубликовать расписание на следующую неделю, если оно ещё не опубликовано"""
+  plan = get_week_plan(get_next_week_start())
+  if plan.published is not None:
+    return
+  start, end = get_week_range(plan.week_start)
+  text = (f"⏰ <b>Расписание на неделю {start} – {end} ещё не опубликовано</b>\n\n"
+          f"Опубликуйте его до {AUTO_PUBLISH_TIME}: /schedule\n"
+          f"В {AUTO_PUBLISH_TIME} бот опубликует расписание сам: бариста встанут на выбранные смены, "
+          f"а на смены, которые выбрали несколько бариста, никто не будет поставлен.\n\n"
+          f"{get_schedule_lines(plan.schedule)}")
+  conflicts = get_conflicts_text(plan)
+  if conflicts:
+    text += f"\n\n{conflicts}"
+  await notify_admin(bot, text, parse_mode=ParseMode.HTML)
+
+
+async def auto_publish_schedule(bot: Bot):
+  """
+  Публикует расписание на следующую неделю, если администраторы не опубликовали его сами.
+  На смены, которые выбрали несколько бариста и которые администраторы не распределили, никто не ставится.
+  """
+  plan = get_week_plan(get_next_week_start())
+  if plan.published is not None:
+    return
+  schedule = plan.schedule
+  publish_schedule(plan.week_start, schedule)
+  conflicts = get_conflicts_text(plan)
+  note = f"{conflicts}\nНа эти смены никто не поставлен, назначьте бариста: /schedule" if conflicts else ""
+  report = await notify_about_schedule(bot, plan.week_start, schedule, None, auto=True, note=note)
+  await notify_admin(bot, report)

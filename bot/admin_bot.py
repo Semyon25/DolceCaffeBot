@@ -31,8 +31,7 @@ async def send_admins_list(message: Message):
   answer = "#admins\nАдминистраторы:\n"
   for number, admin_id in enumerate(get_admin_ids(), start=1):
     name = get_user_name(get_user(admin_id)) or "не зарегистрирован в боте"
-    main_mark = " — главный" if is_main_admin(admin_id) else ""
-    answer += f"{number}. {name} ({admin_id}){main_mark}\n"
+    answer += f"{number}. {name} ({admin_id})\n"
   await message.answer(answer)
 
 

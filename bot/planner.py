@@ -13,7 +13,7 @@ from keyboards.main_menu import MY_SHIFTS_BUTTON
 from keyboards.shifts_keyboard import ShiftCallback, NO_SHIFTS_ACTION, SUBMIT_ACTION, get_shifts_keyboard, get_selected_shifts
 from utils.date_utils import MOSCOW_TZ, now, today, get_week_start, get_next_week_start, get_week_range
 from utils.user_utils import get_user_name, get_short_name, is_coffeemaker
-from utils.shifts import ALL_SHIFTS, DAYS, DAY_ORDER, TIMES, TIME_ORDER, format_shift, sort_shifts, order_and_format_shifts
+from utils.shifts import ALL_SHIFTS, DAYS, DAY_ORDER, TIMES, TIME_ORDER, FULL_DAY_TIME, format_shift, sort_shifts, order_and_format_shifts
 from utils.send_message import notify_admin, edit_message
 
 router = Router()
@@ -79,20 +79,24 @@ def get_names(user_ids) -> dict[int, str]:
 
 
 def get_schedule_lines(schedule: dict[str, int], viewer_id: int | None = None) -> str:
-  """Расписание недели по дням (HTML): «Пн: 10-16 Аня, 16-22 Боря». Имя viewer_id выделено жирным."""
+  """
+  Расписание недели по дням (HTML): «Пн: 10-16 Аня, 16-22 Боря». Имя viewer_id выделено жирным.
+  Если бариста стоит на всех сменах дня, они пишутся одной: «Вт: 10-22 Аня».
+  """
   names = get_names(schedule.values())
+
+  def format_name(user_id: int | None) -> str:
+    if user_id is None:
+      return "—"
+    return f"<b>{names[user_id]}</b>" if user_id == viewer_id else names[user_id]
+
   lines = []
   for day in DAYS:
-    parts = []
-    for shift_time in TIMES:
-      user_id = schedule.get(f"{day}_{shift_time}")
-      if user_id is None:
-        name = "—"
-      elif user_id == viewer_id:
-        name = f"<b>{names[user_id]}</b>"
-      else:
-        name = names[user_id]
-      parts.append(f"{TIME_ORDER[shift_time][1]} {name}")
+    user_ids = [schedule.get(f"{day}_{shift_time}") for shift_time in TIMES]
+    if user_ids[0] is not None and len(set(user_ids)) == 1:
+      parts = [f"{FULL_DAY_TIME} {format_name(user_ids[0])}"]
+    else:
+      parts = [f"{TIME_ORDER[shift_time][1]} {format_name(user_id)}" for shift_time, user_id in zip(TIMES, user_ids)]
     lines.append(f"{DAY_ORDER[day][1]}: " + ", ".join(parts))
   return "\n".join(lines)
 
