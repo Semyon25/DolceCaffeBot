@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardBut
 import config
 from db.payments import get_payment_date, mark_paid
 from db.users import get_user
-from services.beget_payment import create_sbp_payment_link
+from services.amvera_payment import create_payment_link
 from utils.admin import is_admin
 from utils.date_utils import today
 from utils.send_message import notify_admin
@@ -55,12 +55,12 @@ async def send_payment_reminder(bot: Bot):
   else:
     when = f"<b>Через {days_left} дня, {format_date(due_date)}</b>,"
 
-  payment_link = await create_sbp_payment_link()
+  payment_link = await create_payment_link()
   text = f"#payment\n💳 {when} необходимо оплатить размещение бота.\n\n"
   if payment_link:
-    text += f"Оплатить можно по <a href=\"{payment_link}\">ссылке СБП</a>:\n{payment_link}\n\n"
+    text += f"Оплатить можно по <a href=\"{payment_link}\">ссылке</a>:\n{payment_link}\n\n"
   else:
-    text += "⚠️ Не удалось получить ссылку на оплату, оплатите в личном кабинете Beget.\n\n"
+    text += "⚠️ Не удалось получить ссылку на оплату.\n\n"
   text += "После оплаты нажмите кнопку <b>«Я оплатил»</b> ✅"
 
   await notify_admin(bot, text, parse_mode=ParseMode.HTML,
@@ -75,13 +75,13 @@ async def handle_payment_link_command(message: Message):
 
 
 async def send_payment_link(message: Message):
-  """Получает в личном кабинете Beget свежую ссылку СБП и отправляет её администратору"""
-  await message.answer("Получаю ссылку на оплату в личном кабинете Beget...")
-  payment_link = await create_sbp_payment_link()
+  """Создаёт в личном кабинете Amvera пополнение баланса и отправляет администратору ссылку на оплату"""
+  await message.answer("Получаю ссылку на оплату в личном кабинете Amvera...")
+  payment_link = await create_payment_link()
   if payment_link:
-    await message.answer(f"💳 Ссылка СБП на оплату размещения бота ({config.payment_amount} ₽):\n{payment_link}")
+    await message.answer(f"💳 Ссылка на оплату размещения бота ({config.payment_amount} ₽):\n{payment_link}")
   else:
-    await message.answer("❌ Не удалось получить ссылку. Проверьте beget_login, beget_password и payment_amount в .env или переменных окружения и логи бота.")
+    await message.answer("❌ Не удалось получить ссылку.")
 
 
 @router.callback_query(F.data.startswith(PAID_CALLBACK_PREFIX))
