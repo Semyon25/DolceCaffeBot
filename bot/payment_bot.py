@@ -109,4 +109,4 @@ async def handle_payment_paid(query: CallbackQuery, bot: Bot):
   await notify_admin(bot,
                      f"#payment\n✅ {admin_name} отметил оплату размещения бота за {format_date(paid_date)}.\n"
                      f"Следующая оплата: <b>{format_date(next_date)}</b>",
-                     parse_mode=ParseMode.HTML)
+                     actor_id=query.from_user.id, parse_mode=ParseMode.HTML)

@@ -11,12 +11,10 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, MessageO
 from bot.admin_bot import send_admins_list, appoint_admin, dismiss_admin
 from bot.broadcast_bot import start_broadcast
 from bot.coffeemaker_bot import (send_coffeemakers_list, send_all_users_in_details, add_coffeemaker, remove_coffeemaker_by_id,
-                                 approve_feedback_for_user, add_feedback_link, correct_purchase_count_for_user,
-                                 add_certificate_code, send_plan_next_week, add_subscription_for_user, send_shift_wishes)
+                                 correct_purchase_count_for_user, send_plan_next_week, send_shift_wishes)
 from bot.planner import get_shift_wishes_text
 from bot.schedule_bot import send_schedule_editor
 from bot.payment_bot import send_payment_link
-from db.feedback import get_feedbacks_waiting_approval
 from db.purchases import get_count
 from db.users import User, get_user, get_users, get_user_by_username
 from keyboards.admin_panel import (SECTIONS, MAIN_SECTION, CANCEL_CALLBACK, CONFIRM_CALLBACK, SKIP_CALLBACK, CLOSE_CALLBACK,
@@ -45,8 +43,6 @@ class AdminPanelState(StatesGroup):
   confirming = State()
   entering_name = State()
   entering_count = State()
-  entering_code = State()
-  entering_link = State()
 
 
 PANEL_TEXT = "🛠 <b>Админ-панель</b>\nВыберите раздел ⬇"
@@ -55,11 +51,8 @@ PANEL_TEXT = "🛠 <b>Админ-панель</b>\nВыберите раздел
 USER_PROMPTS = {
   "send_message": "✉️ Кому отправить сообщение?",
   "correct_purchase_count": "🔢 У кого изменить количество накопленных напитков?",
-  "add_subscription": "🎫 Кому добавить абонемент?",
   "add_coffeemaker": "➕ Кого назначить бариста?",
   "remove_coffeemaker": "➖ Кого убрать из бариста?",
-  "approve_feedback": "👍 Чей отзыв подтвердить? В списке — отзывы, ожидающие модерации",
-  "add_link": "🔗 Кому добавить ссылку на отзыв?",
   "add_admin": "➕ Кого назначить администратором?",
   "remove_admin": "➖ С кого снять роль администратора?",
 }
@@ -73,7 +66,7 @@ CONFIRM_TEXTS = {
 }
 
 # Списки, где пользователи отсортированы от новых к старым
-NEWEST_FIRST_ACTIONS = {"send_message", "correct_purchase_count", "add_subscription", "add_coffeemaker", "add_link", "add_admin"}
+NEWEST_FIRST_ACTIONS = {"send_message", "correct_purchase_count", "add_coffeemaker", "add_admin"}
 
 
 async def edit_message(message: Message, text: str, reply_markup: InlineKeyboardMarkup | None = None):
@@ -104,9 +97,6 @@ def get_candidates(action: str, admin_id: int, query: str | None = None) -> list
   else:
     if action == "remove_coffeemaker":
       users = [user for user in get_users() if user.is_coffeemaker]
-    elif action == "approve_feedback":
-      users = [get_user(feedback.user_id) for feedback in get_feedbacks_waiting_approval()]
-      users = [user for user in users if user is not None]
     else:
       users = get_users()
       if action == "add_coffeemaker":
@@ -201,9 +191,6 @@ async def handle_action(query: CallbackQuery, callback_data: AdminAction, state:
     await state.update_data(action=action)
     await query.message.answer(CONFIRM_TEXTS[action], reply_markup=get_confirm_keyboard())
     await state.set_state(AdminPanelState.confirming)
-  elif action == "add_code":
-    await query.message.answer("🔐 Введите 8-значный код сертификата ⬇", reply_markup=get_cancel_keyboard())
-    await state.set_state(AdminPanelState.entering_code)
   elif action in USER_PROMPTS:
     candidates = get_candidates(action, query.from_user.id)
     await state.update_data(action=action)
@@ -296,15 +283,6 @@ async def select_user(message: Message, state: FSMContext, bot: Bot, admin_id: i
     await message.answer(f"☕ Введите имя бариста для {name} или нажмите «Пропустить» ⬇",
                          reply_markup=get_cancel_keyboard(with_skip=True))
     await state.set_state(AdminPanelState.entering_name)
-  elif action == "add_link":
-    await message.answer(f"🔗 Отправьте ссылку на отзыв пользователя {name} ⬇", reply_markup=get_cancel_keyboard())
-    await state.set_state(AdminPanelState.entering_link)
-  elif action == "add_subscription":
-    await state.clear()
-    await add_subscription_for_user(message, bot, user_id)
-  elif action == "approve_feedback":
-    await state.clear()
-    await approve_feedback_for_user(message, bot, user_id)
 
 
 @router.callback_query(AdminPanelState.confirming, F.data == CONFIRM_CALLBACK)
@@ -316,7 +294,7 @@ async def handle_confirm(query: CallbackQuery, state: FSMContext, bot: Bot):
   action = data.get("action")
   user_id = data.get("user_id")
   if action == "remove_coffeemaker":
-    await remove_coffeemaker_by_id(query.message, user_id)
+    await remove_coffeemaker_by_id(query.message, bot, query.from_user.id, user_id)
   elif action == "add_admin":
     await appoint_admin(query.message, bot, query.from_user.id, user_id)
   elif action == "remove_admin":
@@ -331,7 +309,7 @@ async def handle_skip_name(query: CallbackQuery, state: FSMContext, bot: Bot):
   await state.clear()
   await query.answer()
   await query.message.edit_reply_markup(reply_markup=None)  # Убираем кнопки
-  await add_coffeemaker(query.message, bot, data.get("user_id"))
+  await add_coffeemaker(query.message, bot, query.from_user.id, data.get("user_id"))
 
 
 @router.message(AdminPanelState.entering_name, is_not_command)
@@ -342,7 +320,7 @@ async def handle_name_input(message: Message, state: FSMContext, bot: Bot):
     return
   data = await state.get_data()
   await state.clear()
-  await add_coffeemaker(message, bot, data.get("user_id"), name)
+  await add_coffeemaker(message, bot, message.from_user.id, data.get("user_id"), name)
 
 
 @router.message(AdminPanelState.entering_count, is_not_command)
@@ -351,23 +329,6 @@ async def handle_count_input(message: Message, state: FSMContext):
   # При некорректном вводе остаёмся в этом шаге, чтобы можно было ввести число ещё раз
   if await correct_purchase_count_for_user(message, data.get("user_id"), (message.text or "").strip()):
     await state.clear()
-
-
-@router.message(AdminPanelState.entering_code, is_not_command)
-async def handle_code_input(message: Message, state: FSMContext):
-  if await add_certificate_code(message, message.from_user.id, (message.text or "").strip()):
-    await state.clear()
-
-
-@router.message(AdminPanelState.entering_link, is_not_command)
-async def handle_link_input(message: Message, state: FSMContext):
-  link = (message.text or "").strip()
-  if not link:
-    await message.answer("⚠️ Отправьте ссылку текстом")
-    return
-  data = await state.get_data()
-  await state.clear()
-  await add_feedback_link(message, data.get("user_id"), link)
 
 
 @router.callback_query(F.data == CANCEL_CALLBACK)

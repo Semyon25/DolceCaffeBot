@@ -74,7 +74,7 @@ async def handle_waiting_payment(query: CallbackQuery, state: FSMContext, bot: B
 async def handle_confirm_payment(query: CallbackQuery, state: FSMContext, bot: Bot):
   if query.data == "confirm_payment_for_subscription":
     user = get_user(query.from_user.id)
-    await notify_admin(bot, f"Пользователь {get_user_name(user)} ({int(user.id)}) купил абонемент! Необходимо проверить оплату и открыть абонемент")
+    await notify_admin(bot, f"Пользователь {get_user_name(user)} ({int(user.id)}) купил абонемент! Необходимо проверить оплату и открыть абонемент", actor_id=query.from_user.id)
     await query.message.answer("☕ Мы проверим оплату в течение нескольких часов. Спасибо за ваше терпение! 💛\n📩 Если появятся вопросы — напишите нам в этом боте, мы всегда на связи! 🤝")
     await bot.delete_message(chat_id=query.message.chat.id, message_id=query.message.message_id)
     await query.answer()

@@ -36,7 +36,6 @@ SECTIONS = {
     ("📋 Все пользователи", "all_users_in_details"),
     ("✉️ Написать пользователю", "send_message"),
     ("🔢 Изменить накопленные напитки", "correct_purchase_count"),
-    ("🎫 Добавить абонемент", "add_subscription"),
   ]),
   "coffeemakers": ("☕ Бариста", [
     ("📋 Список бариста", "coffeemakers"),
@@ -44,12 +43,6 @@ SECTIONS = {
     ("➖ Удалить бариста", "remove_coffeemaker"),
     ("📅 Запланировать следующую неделю", "plan_next_week"),
     ("🗓 Пожелания по сменам", "shift_wishes"),
-    ("📝 Расписание смен", "schedule"),
-  ]),
-  "codes": ("🎟 Коды и отзывы", [
-    ("🔐 Добавить код сертификата", "add_code"),
-    ("👍 Подтвердить отзыв", "approve_feedback"),
-    ("🔗 Добавить ссылку на отзыв", "add_link"),
   ]),
   "admins": ("👑 Администраторы", [
     ("📋 Список администраторов", "admins"),
@@ -64,7 +57,7 @@ def get_admin_panel_keyboard() -> InlineKeyboardMarkup:
   kb.button(text=SECTIONS["users"][0], callback_data=AdminSection(name="users"))
   kb.button(text=SECTIONS["coffeemakers"][0], callback_data=AdminSection(name="coffeemakers"))
   kb.button(text="📢 Рассылка всем", callback_data=AdminAction(name="broadcast"))
-  kb.button(text=SECTIONS["codes"][0], callback_data=AdminSection(name="codes"))
+  kb.button(text="📝 Расписание смен", callback_data=AdminAction(name="schedule"))
   kb.button(text=SECTIONS["admins"][0], callback_data=AdminSection(name="admins"))
   kb.button(text="💳 Оплата бота", callback_data=AdminAction(name="payment_link"))
   kb.button(text="✖️ Закрыть", callback_data=CLOSE_CALLBACK)

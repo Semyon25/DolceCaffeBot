@@ -333,7 +333,7 @@ async def handle_schedule_action(query: CallbackQuery, callback_data: ScheduleAc
   schedule = plan.schedule
   publish_schedule(plan.week_start, schedule)
   await show_editor(query, get_week_plan(plan.week_start))
-  report = await notify_about_schedule(bot, plan.week_start, schedule, previous)
+  report = await notify_about_schedule(bot, plan.week_start, schedule, previous, actor_id=query.from_user.id)
   await query.message.answer(report)
 
 
@@ -360,11 +360,13 @@ async def show_publish_confirm(query: CallbackQuery, plan: WeekPlan):
 
 
 async def notify_about_schedule(bot: Bot, week_start: date, schedule: dict[str, int],
-                                previous: dict[str, int] | None, auto: bool = False, note: str = "") -> str:
+                                previous: dict[str, int] | None, auto: bool = False, note: str = "",
+                                actor_id: int | None = None) -> str:
   """
   Рассылает опубликованное расписание: при первой публикации — всем бариста, при изменении — тем,
   у кого изменились смены. Администраторам приходит расписание (note (HTML) дописывается в конец),
   а возвращается отчёт о рассылке. auto — расписание опубликовал бот, а не администратор.
+  actor_id — администратор, опубликовавший расписание.
   """
   start, end = get_week_range(week_start)
   if previous is None:
@@ -402,7 +404,7 @@ async def notify_about_schedule(bot: Bot, week_start: date, schedule: dict[str, 
                   f"{get_changes_text(previous, schedule, week_start, names)}\n\n{get_schedule_lines(schedule)}")
   if note:
     admin_text += f"\n\n{note}"
-  await notify_admin(bot, admin_text, parse_mode=ParseMode.HTML)
+  await notify_admin(bot, admin_text, actor_id=actor_id, parse_mode=ParseMode.HTML)
 
   report = f"✅ Расписание опубликовано. Уведомление получили бариста: {len(sent)}"
   if sent:

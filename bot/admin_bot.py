@@ -28,8 +28,13 @@ async def send_message_safe(bot: Bot, user_id: int, text: str):
 
 
 async def send_admins_list(message: Message):
+  # Главного администратора из .env в списке не показываем
+  admin_ids = [admin_id for admin_id in get_admin_ids() if not is_main_admin(admin_id)]
+  if not admin_ids:
+    await message.answer("#admins\nНазначенных администраторов нет")
+    return
   answer = "#admins\nАдминистраторы:\n"
-  for number, admin_id in enumerate(get_admin_ids(), start=1):
+  for number, admin_id in enumerate(admin_ids, start=1):
     name = get_user_name(get_user(admin_id)) or "не зарегистрирован в боте"
     answer += f"{number}. {name} ({admin_id})\n"
   await message.answer(answer)
@@ -46,7 +51,7 @@ async def appoint_admin(message: Message, bot: Bot, admin_id: int, user_id: int)
   if not add_admin(user_id, added_by=admin_id):
     await message.answer("🟡 Данный пользователь уже администратор!")
     return
-  await notify_admin(bot, f"#admins\n✅ {get_user_name(get_user(admin_id))} назначил администратором {get_user_name(user)} ({user_id})")
+  await notify_admin(bot, f"#admins\n✅ {get_user_name(get_user(admin_id))} назначил администратором {get_user_name(user)} ({user_id})", actor_id=admin_id)
   await send_message_safe(bot, user_id, "Вам назначена роль администратора! Список команд: /help, админ-панель: /admin")
 
 
@@ -65,7 +70,7 @@ async def dismiss_admin(message: Message, bot: Bot, admin_id: int, user_id: int)
     await message.answer("❌ Данный пользователь не администратор!")
     return
   user = get_user(user_id)
-  await notify_admin(bot, f"#admins\n🗑 {get_user_name(get_user(admin_id))} снял роль администратора с {get_user_name(user) or user_id} ({user_id})")
+  await notify_admin(bot, f"#admins\n🗑 {get_user_name(get_user(admin_id))} снял роль администратора с {get_user_name(user) or user_id} ({user_id})", actor_id=admin_id)
   await send_message_safe(bot, user_id, "С вас снята роль администратора")
 
 

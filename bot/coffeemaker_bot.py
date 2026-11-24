@@ -9,7 +9,7 @@ from aiogram.filters import Command
 from bot.feedback_bot import use_code
 from bot.planner import plan_next_week, get_default_wishes_week, get_shift_wishes_text, get_last_day_text
 from utils.admin import is_admin, is_coffeemaker_or_admin
-from utils.send_message import notify_admin
+from utils.send_message import notify_admin, notify_main_admin
 from utils.user_utils import get_user_name, get_coffeemaker_emoji, get_feedback_emoji, get_beverage_count_emoji
 from db.users import get_user, set_user_as_coffeemaker, get_users, set_name_for_user
 from keyboards.main_menu import get_main_menu
@@ -82,7 +82,8 @@ async def handle_purchase_6_1(message: Message, state: FSMContext, bot: Bot):
       coffeemaker = get_user(message.from_user.id)
       await notify_admin(
           bot,
-          f"Пользователь {get_user_name(client)} предъявил бариста {get_user_name(coffeemaker)} код для бесплатного напитка по акции 6+1"
+          f"Пользователь {get_user_name(client)} предъявил бариста {get_user_name(coffeemaker)} код для бесплатного напитка по акции 6+1",
+          actor_id=message.from_user.id
       )
       await bot.send_message(userId,
                              "Бариста приготовит вам бесплатный напиток!🥳☕")
@@ -117,7 +118,8 @@ async def handle_beverage_count(query: CallbackQuery, state: FSMContext,
   coffeemaker = get_user(query.from_user.id)
   await notify_admin(
       bot,
-      f"Пользователь {get_user_name(user)} купил {delta} {beverage_declension(delta)} по акции 6+1 у бариста {get_user_name(coffeemaker)}. Общее количество напитков: {count}"
+      f"Пользователь {get_user_name(user)} купил {delta} {beverage_declension(delta)} по акции 6+1 у бариста {get_user_name(coffeemaker)}. Общее количество напитков: {count}",
+      actor_id=query.from_user.id
   )
   await bot.send_message(
       userId,
@@ -146,7 +148,8 @@ async def handle_feedback(message: Message, bot: Bot):
     user = get_user(user_id)
     await notify_admin(
         bot,
-        f"Пользователь @{user.username} предъявил код для бесплатного напитка")
+        f"Пользователь @{user.username} предъявил код для бесплатного напитка",
+        actor_id=message.from_user.id)
     await bot.send_message(
         user_id,
         "Код использован! Бариста приготовит вам бесплатный напиток!🥳☕",
@@ -166,7 +169,8 @@ async def handle_certificate(message: Message, bot: Bot):
         "✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
     await notify_admin(
         bot,
-        f"Использован код {entered_code} по сертификату на бесплатный напиток")
+        f"Использован код {entered_code} по сертификату на бесплатный напиток",
+        actor_id=message.from_user.id)
   else:
     await message.answer("❌ Код неверный! ❌",
                          reply_markup=get_main_menu(message.from_user.id))
@@ -181,7 +185,7 @@ async def handle_subscription(message: Message, bot: Bot):
   if user_id:
     await message.answer("✅ Код верный! ✅\nПриготовьте клиенту бесплатный напиток")
     await bot.send_message(user_id, "Код использован! Бариста приготовит вам бесплатный напиток!🥳☕")
-    await notify_admin(bot, f"Пользователь {get_user_name(get_user(user_id))} предъявил код для бесплатного напитка по абонементу")
+    await notify_admin(bot, f"Пользователь {get_user_name(get_user(user_id))} предъявил код для бесплатного напитка по абонементу", actor_id=message.from_user.id)
 
 def get_command_args(message: Message, maxsplit: int = -1) -> list[str]:
   """Возвращает параметры команды без самой команды"""
@@ -206,13 +210,16 @@ async def approve_feedback_for_user(message: Message, bot: Bot, user_id):
     await message.answer("Пользователь не найден.")
 
 
-async def add_coffeemaker(message: Message, bot: Bot, user_id, name: str | None = None):
-  """Назначает пользователя бариста и, если указано, задаёт ему имя"""
+async def add_coffeemaker(message: Message, bot: Bot, admin_id: int, user_id, name: str | None = None):
+  """
+  Назначает пользователя бариста и, если указано, задаёт ему имя. admin_id — кто назначает.
+  """
   user = get_user(user_id)
   if user is None:
     await message.answer("Такого пользователя не существует!")
     return
-  if user.is_coffeemaker == 0:
+  is_new = user.is_coffeemaker == 0
+  if is_new:
     set_user_as_coffeemaker(user.id, 1)
     await message.answer("Добавлен новый бариста!")
     await bot.send_message(user.id,
@@ -223,16 +230,25 @@ async def add_coffeemaker(message: Message, bot: Bot, user_id, name: str | None 
   if name:
     set_name_for_user(user.id, name)
     await message.answer("Задано имя для бариста!")
+  if is_new:
+    # Главный администратор видит все назначения бариста
+    await notify_main_admin(bot, f"#coffeemakers\n✅ {get_user_name(get_user(admin_id))} назначил бариста "
+                                 f"{get_user_name(get_user(user.id)) or user.id} ({int(user.id)})")
 
 
-async def remove_coffeemaker_by_id(message: Message, user_id):
-  """Снимает с пользователя роль бариста"""
+async def remove_coffeemaker_by_id(message: Message, bot: Bot, admin_id: int, user_id):
+  """
+  Снимает с пользователя роль бариста. admin_id — кто снимает.
+  """
   user = get_user(user_id)
   if user is not None:
     if user.is_coffeemaker == 1:
       set_user_as_coffeemaker(user.id, 0)
       await message.answer(
           f"Пользователь @{user.username} больше не бариста!")
+      # Главный администратор видит все снятия бариста
+      await notify_main_admin(bot, f"#coffeemakers\n🗑 {get_user_name(get_user(admin_id))} снял роль бариста с "
+                                   f"{get_user_name(user) or user.id} ({int(user.id)})")
     else:
       await message.answer("Данный пользователь не бариста!")
   else:
@@ -378,7 +394,7 @@ async def add_new_coffeemaker(message: Message, bot: Bot):
       await message.answer("⚠️ Укажи ID пользователя после команды: /addNewCoffeemaker {userId} [{name}]")
       return
     name = args[1] if len(args) > 1 else None
-    await add_coffeemaker(message, bot, args[0], name)
+    await add_coffeemaker(message, bot, message.from_user.id, args[0], name)
 
 
 @router.message(Command('removeCoffeemaker'))
@@ -388,7 +404,7 @@ async def remove_coffeemaker(message: Message, bot: Bot):
     if not args:
       await message.answer("⚠️ Укажи ID пользователя после команды: /removeCoffeemaker {userId}")
       return
-    await remove_coffeemaker_by_id(message, args[0])
+    await remove_coffeemaker_by_id(message, bot, message.from_user.id, args[0])
 
 
 @router.message(Command('allUsers'))

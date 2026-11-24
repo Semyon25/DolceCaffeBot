@@ -264,7 +264,7 @@ async def handle_shift_callback(query: CallbackQuery, callback_data: ShiftCallba
   else:
     action_text = f"изменил выбор смен:\n{shifts_text}" if shifts else "изменил выбор: без смен"
     action_text += f"\n\nБыло: {format_wish(previous)}"
-  await notify_admin(bot,f"#planner #week_{start}_{end}\nБариста {get_user_name(user)} {action_text}")
+  await notify_admin(bot, f"#planner #week_{start}_{end}\nБариста {get_user_name(user)} {action_text}", actor_id=query.from_user.id)
 
 
 @router.callback_query(F.data.startswith("shift_"))

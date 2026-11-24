@@ -21,7 +21,8 @@ async def cmd_start(message: Message, bot: Bot):
               f"Зарегистрировался новый пользователь:\n"
               f"{message.from_user.id}\n"
               f"@{message.from_user.username}\n"
-              f"{message.from_user.first_name} {message.from_user.last_name}"
+              f"{message.from_user.first_name} {message.from_user.last_name}",
+              actor_id=message.from_user.id
           )
     name = ''
     if message.from_user.first_name is not None:

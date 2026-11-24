@@ -22,4 +22,4 @@ async def handle_text_message(message: Message, bot: Bot):
       if feedback is None or feedback.link is None:
         is_update, feedback = update_or_create_feedback(message.from_user.id, link)
         await message.answer("Ваша ссылка проходит модерацию. Ожидайте ⏳")
-        await notify_admin(bot, f"Новая ссылка на отзыв от @{message.from_user.username}: {link}")
+        await notify_admin(bot, f"Новая ссылка на отзыв от @{message.from_user.username}: {link}", actor_id=message.from_user.id)
